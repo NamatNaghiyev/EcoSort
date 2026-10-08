@@ -1,421 +1,60 @@
-<!DOCTYPE html>
-<html lang="az" data-theme="light">
+<!doctype html>
+<html lang="az">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoSort AI — Tullantı Tanıma</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoSort — Analiz iş sahəsi</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="{{ url_for('static', filename='workspace.js') }}" defer></script>
 </head>
 <body>
-
-<div class="toast-container" id="toast-container"></div>
-
-<div class="layout">
-
-    <!-- ══ SIDEBAR ══ -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-icon">♻</div>
-            <div class="logo-text">
-                <span class="logo-name">EcoSort</span>
-                <span class="logo-tag">AI</span>
-            </div>
-        </div>
-
-        <div class="sidebar-section-label">Kateqoriyalar</div>
-        <nav class="sidebar-nav">
-            <a href="#" class="nav-item cat-item" data-cat="plastic">
-                <span class="cat-dot" style="background:#F7C23A"></span> Plastik
-            </a>
-            <a href="#" class="nav-item cat-item" data-cat="paper">
-                <span class="cat-dot" style="background:#5BB8F5"></span> Kağız
-            </a>
-            <a href="#" class="nav-item cat-item" data-cat="glass">
-                <span class="cat-dot" style="background:#2EE89A"></span> Şüşə
-            </a>
-            <a href="#" class="nav-item cat-item" data-cat="metal">
-                <span class="cat-dot" style="background:#A8B5C2"></span> Metal
-            </a>
-            <a href="#" class="nav-item cat-item" data-cat="organic">
-                <span class="cat-dot" style="background:#D4845A"></span> Üzvi
-            </a>
-        </nav>
-
-        <div class="sidebar-footer">
-            <div class="planet-score">
-                <div class="planet-score-icon">🌍</div>
-                <div>
-                    <div class="planet-score-label">Azərbaycan Karbon Hədəfi</div>
-                    <div class="planet-score-val">2050 — Net-Zero</div>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- ══ MAIN ══ -->
-    <main class="main-content">
-
-        <header class="topbar">
-            <div class="topbar-left">
-                <button class="sidebar-toggle" id="sidebar-toggle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                </button>
-                <div class="breadcrumb">
-                    <span class="bc-root">EcoSort</span>
-                    <span class="bc-sep">/</span>
-                    <span class="bc-current">Tullantı Skanı</span>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <button class="theme-toggle" id="theme-toggle" aria-label="Tema">
-                    <span class="icon-dark">🌙</span>
-                    <span class="icon-light">☀️</span>
-                </button>
-            </div>
-        </header>
-
-        <div class="page-body">
-
-            <!-- ── SCAN CARD ── -->
-            <div class="scan-wrap">
-                <div class="card scan-card">
-                    <div class="card-header">
-                        <div class="card-title">Tullantı Skanı</div>
-                        <div class="card-sub">Şəkil yükləyin, AI növü təyin etsin</div>
-                    </div>
-
-                    <form method="POST" enctype="multipart/form-data" id="upload-form">
-                        <div class="drop-zone" id="drop-zone">
-                            <div class="drop-inner">
-                                <div class="drop-icon-wrap">
-                                    <svg width="40" height="40" viewBox="0 0 52 52" fill="none">
-                                        <circle cx="26" cy="26" r="25" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4"/>
-                                        <path d="M26 34V18M26 18l-6 6M26 18l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </div>
-                                <p class="drop-main">Şəkli buraya sürükləyin</p>
-                                <p class="drop-sub">JPG · PNG · WEBP · BMP — maks. 16 MB</p>
-                                <label class="drop-btn" for="file-input">Fayl seç</label>
-                                <input type="file" name="image" id="file-input" accept="image/*" required>
-                            </div>
-                        </div>
-
-                        <div class="preview-box" id="preview-box" style="display:none;">
-                            <img id="preview-img" src="" alt="Önizləmə">
-                            <button type="button" class="preview-change" id="change-btn">✕ Dəyiş</button>
-                        </div>
-
-                        <button type="submit" class="submit-btn" id="submit-btn">
-                            <span class="btn-text">Analiz Et</span>
-                            <div class="btn-loader hidden" id="btn-loader"><span></span><span></span><span></span></div>
-                        </button>
-                    </form>
-
-                    {% if error %}
-                    <div class="alert-error">
-                        <span>⚠</span> {{ error }}
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- ── RESULT ── -->
-                {% if result %}
-                <div class="result-wrapper" id="result-section" data-label="{{ result.label }}" data-confidence="{{ result.confidence }}">
-
-                    {% if result.low_confidence %}
-                    <div class="alert-warn">⚡ Ehtimal aşağıdır ({{ result.confidence }}%) — daha aydın şəkil yükləyin.</div>
-                    {% endif %}
-
-                    <div class="result-grid">
-                        <!-- Image -->
-                        <div class="card result-img-card">
-                            <div class="result-img-wrap">
-                                <img src="{{ image_path }}" alt="Analiz">
-                                <div class="result-badge-over {{ result.label }}">{{ result.emoji }} {{ result.label | capitalize }}</div>
-                            </div>
-                            <div class="result-actions">
-                                <button class="action-btn" id="share-result">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                                    Paylaş
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Info -->
-                        <div class="card result-info-card">
-                            <div class="result-head">
-                                <div class="waste-pill {{ result.label }}">{{ result.emoji }} {{ result.label | upper }}</div>
-                                <div class="conf-badge">{{ result.confidence }}% dəqiqlik</div>
-                            </div>
-
-                            <div class="conf-bar-wrap">
-                                <div class="conf-bar-track">
-                                    <div class="conf-bar-fill {{ result.label }}" style="--pct:{{ result.confidence }}%"></div>
-                                </div>
-                            </div>
-
-                            <div class="info-row-item">
-                                <div class="info-icon-sm">🗑</div>
-                                <div>
-                                    <div class="info-lbl">Atılmalı qutu</div>
-                                    <div class="info-val">{{ result.bin }} <span class="color-pill {{ result.label }}">● {{ result.color }}</span></div>
-                                </div>
-                            </div>
-
-                            <p class="result-desc-text">{{ result.description }}</p>
-
-                            {% if result.top_results %}
-                            <div class="top3-block">
-                                <div class="top3-title">Top-3 ehtimal</div>
-                                {% for item in result.top_results %}
-                                <div class="top3-row">
-                                    <span class="top3-lbl {{ item.label }}">{{ item.label }}</span>
-                                    <div class="top3-track"><div class="top3-fill {{ item.label }}" style="width:{{ item.confidence }}%"></div></div>
-                                    <span class="top3-pct">{{ item.confidence }}%</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- IMPACT CARDS -->
-                    <div class="section-head">
-                        <div class="section-title-txt">🌍 Ətraf Mühit Təsiri</div>
-                    </div>
-                    <div class="impact-cards-grid" id="impact-cards"></div>
-
-                    <!-- DID YOU KNOW -->
-                    <div class="card dyk-card" style="margin-top:16px;">
-                        <div class="dyk-head">
-                            <span class="dyk-tag">💡 Bilirdinizmi?</span>
-                            <button class="dyk-next-btn" id="dyk-next">Digər →</button>
-                        </div>
-                        <p class="dyk-text" id="dyk-text">Yüklənir...</p>
-                        <div class="dyk-dots" id="dyk-dots"></div>
-                    </div>
-
-                    <!-- TIMELINE -->
-                    <div class="section-head" style="margin-top:24px;">
-                        <div class="section-title-txt">🔄 Emal Prosesi</div>
-                    </div>
-                    <div class="timeline-wrap" id="timeline"></div>
-
-                </div>
-                {% endif %}
-            </div>
-
-        </div>
-    </main>
+<a class="skip-link" href="#main">Məzmuna keç</a>
+<aside class="sidebar">
+<a class="brand" href="/" aria-label="EcoSort ana səhifə"><span class="brand-mark" aria-hidden="true">↗</span>EcoSort<span class="brand-dot">.</span></a>
+<p class="eyebrow nav-label">İŞ SAHƏSİ</p>
+<nav aria-label="Əsas menyu">
+<button class="nav active" data-view="analysis" aria-current="page"><span aria-hidden="true">⊞</span>Yeni analiz</button>
+<button class="nav" data-view="history"><span aria-hidden="true">◷</span>Analiz tarixçəsi<span id="history-count" class="nav-count">0</span></button>
+<button class="nav" data-view="stats"><span aria-hidden="true">▥</span>Statistika</button>
+</nav>
+<div class="sidebar-bottom"><span class="small-symbol" aria-hidden="true">♲</span><strong>Daha düzgün çeşidləmə.</strong><p>Hər analiz bir başlanğıcdır.</p><span class="version">ECOSORT / İŞ SAHƏSİ</span></div>
+</aside>
+<div class="app-shell">
+<header class="topbar"><div>İş sahəsi <span class="separator">/</span> <strong id="breadcrumb">Yeni analiz</strong></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></header>
+<main id="main" tabindex="-1">
+<section id="analysis-view" class="view">
+<div class="page-heading"><div><p class="eyebrow">TULLANTILARIN TƏSNİFATI</p><h1>Şəkildən düzgün istiqamətə.</h1><p>Şəkli yükləyin, kateqoriyanı və çeşidləmə tövsiyəsini öyrənin.</p></div><span class="quiet-tag">Şəkil analizi</span></div>
+<div class="workspace">
+<section class="panel upload-panel" aria-labelledby="upload-heading">
+<div class="panel-heading"><h2 id="upload-heading"><span class="step">01</span> Şəkil yükləmə</h2><span class="muted">JPG, PNG, WebP</span></div>
+<div class="panel-body">
+<div id="drop-zone" class="drop-zone">
+<svg class="upload-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="5" y="9" width="32" height="30" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="m6 31 10-10 10 10 5-5 6 6M35 7h10m-5-5v10" stroke="currentColor" stroke-width="1.5"/><circle cx="28" cy="18" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+<h3>Şəkli buraya sürükləyin</h3><p>və ya cihazınızdan fayl seçin</p>
+<button type="button" class="button" id="choose-file">Fayl seç <span aria-hidden="true">↑</span></button>
+<p class="file-limit">JPG, PNG, WebP · maksimum 15 MB</p>
 </div>
-
-<script>
-/* ══ THEME ══ */
-const html = document.documentElement;
-const saved = localStorage.getItem('ecosort-theme') || 'light';
-html.setAttribute('data-theme', saved);
-document.getElementById('theme-toggle').addEventListener('click', () => {
-    const t = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', t);
-    localStorage.setItem('ecosort-theme', t);
-});
-
-/* ══ SIDEBAR TOGGLE ══ */
-document.getElementById('sidebar-toggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-});
-
-/* ══ TOAST ══ */
-function showToast(msg, type='info') {
-    const c = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className = `toast toast-${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.classList.add('show'), 10);
-    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3500);
-}
-
-/* ══ FILE UPLOAD ══ */
-const dropZone  = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const previewBox = document.getElementById('preview-box');
-const previewImg = document.getElementById('preview-img');
-
-function showPreview(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-        previewImg.src = e.target.result;
-        dropZone.style.display = 'none';
-        previewBox.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-}
-
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) showPreview(fileInput.files[0]); });
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        const dt = new DataTransfer(); dt.items.add(file);
-        fileInput.files = dt.files;
-        showPreview(file);
-    }
-});
-document.getElementById('change-btn').addEventListener('click', () => {
-    fileInput.value = '';
-    previewBox.style.display = 'none';
-    dropZone.style.display = '';
-});
-document.getElementById('upload-form').addEventListener('submit', () => {
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    document.querySelector('.btn-text').classList.add('hidden');
-    document.getElementById('btn-loader').classList.remove('hidden');
-});
-
-/* ══ WASTE DATA ══ */
-const WASTE_DATA = {
-    plastic: {
-        impactCards: [
-            { icon:"🌱", label:"CO₂ qarşısı alındı", value:"2.5 kq", sub:"1 kq plastik emal etdikdə" },
-            { icon:"💧", label:"Su qənaəti", value:"185 L", sub:"Yeni plastik istehsalına nisbətən" },
-            { icon:"⚡", label:"Enerji qənaəti", value:"5.8 kWh", sub:"Bir ailənin 2 günlük işığı" },
-            { icon:"🌊", label:"Okean mühafizəsi", value:"1 plastik", sub:"daha az okeanımıza düşür" }
-        ],
-        facts: [
-            "Bir plastik şüşə 450 ildən çox torpaqda qalır.",
-            "Dünya okeanlarında 5 trillion plastik parçası üzür.",
-            "Plastik tullantıların yalnız 9%-i dünyada emal edilir.",
-            "Hər dəqiqə dünyada 1 milyon plastik şüşə satılır.",
-            "2050-ci ildə okeanda balıqdan çox plastik olacaq."
-        ],
-        timeline: ["Toplama 🗑","Sortlama ⚙️","Yuyulma 🚿","Parçalanma ✂️","Əridilmə 🔥","Yeni məhsul ✨"]
-    },
-    paper: {
-        impactCards: [
-            { icon:"🌱", label:"CO₂ qarşısı alındı", value:"1.1 kq", sub:"1 kq kağız emal etdikdə" },
-            { icon:"💧", label:"Su qənaəti", value:"3,400 L", sub:"Yeni kağız istehsalına nisbətən" },
-            { icon:"🌳", label:"Ağac qənaəti", value:"17 ağac", sub:"1 ton kağız emalı üçün" },
-            { icon:"⚡", label:"Enerji qənaəti", value:"2.5 kWh", sub:"1 kq kağız üçün" }
-        ],
-        facts: [
-            "1 ton kağız emal etmək 17 ağacı qoruyur.",
-            "Kağız 5-7 dəfəyə qədər emal edilə bilər.",
-            "Qida ilə çirklənmiş kağız emal edilə bilməz.",
-            "Dünyada hər saniyə 3,125 ton kağız istifadə edilir.",
-            "Emal olunmuş kağız istehsalı 74% az enerji tələb edir."
-        ],
-        timeline: ["Toplama 🗑","Çeşidləmə 📋","Əzilmə ⚙️","Ağartma 🌊","Preslənmə 📄","Yeni kağız ✨"]
-    },
-    glass: {
-        impactCards: [
-            { icon:"♾️", label:"Sonsuz emal", value:"100%", sub:"Keyfiyyət itirmədən emal edilir" },
-            { icon:"🌱", label:"CO₂ azalması", value:"315 kq", sub:"1 ton şüşə emalında" },
-            { icon:"⚡", label:"Enerji qənaəti", value:"30%", sub:"Yeni şüşə istehsalına nisbətən" },
-            { icon:"💧", label:"Su qənaəti", value:"50 L", sub:"1 kq şüşə üçün" }
-        ],
-        facts: [
-            "Şüşə keyfiyyət itirmədən sonsuz dəfə emal edilə bilər.",
-            "Şüşə torpaqda 4000 ildən çox qalır.",
-            "Emal edilmiş şüşə ilə yeni şüşə 30% az enerji tələb edir.",
-            "Yeni şüşənin 27%-i emal olunmuş şüşədən hazırlanır.",
-            "Bir şüşə lampa üçün enerji 4 saatlıq televizor sərfinə bərabərdir."
-        ],
-        timeline: ["Toplama 🗑","Çeşidləmə 🎨","Əzilmə ⚙️","Yüksək istilik 🔥","Formalaşdırma 🫙","Yeni şüşə ✨"]
-    },
-    metal: {
-        impactCards: [
-            { icon:"⚡", label:"Enerji qənaəti", value:"95%", sub:"Alüminium emalı vs yeni istehsal" },
-            { icon:"🌱", label:"CO₂ qarşısı alındı", value:"9.1 kq", sub:"1 kq metal emal etdikdə" },
-            { icon:"💧", label:"Su qənaəti", value:"40 L", sub:"1 kq metal üçün" },
-            { icon:"🔄", label:"Emal dövrü", value:"sonsuz", sub:"Metal keyfiyyət itirmədən emal edilir" }
-        ],
-        facts: [
-            "Alüminium emalı yeni alüminium istehsalından 95% az enerji tələb edir.",
-            "Köhnə bir alüminium bankası 60 gündə yeni banka çevrilir.",
-            "Polad dünyada ən çox emal edilən material növüdür.",
-            "Metal torpaqda 50-200 il arasında qalır.",
-            "1 ton alüminium emalı 9 ton CO₂ qarşısını alır."
-        ],
-        timeline: ["Toplama 🗑","Sortlama ⚙️","Presləmə 🔩","Əridilmə 🔥","Formalaşdırma 🏭","Yeni metal ✨"]
-    },
-    organic: {
-        impactCards: [
-            { icon:"🌱", label:"Kompost faydası", value:"60%", sub:"Metanın havaya çıxmasını azaldır" },
-            { icon:"💧", label:"Torpaq nəmi", value:"+40%", sub:"Kompostla yaxşılaşan torpaq nəmi" },
-            { icon:"🌿", label:"Torpaq keyfiyyəti", value:"A++", sub:"Kompost torpağı zənginləşdirir" },
-            { icon:"🔄", label:"Bioloji dövr", value:"90 gün", sub:"Üzvi tullantının kompost vaxtı" }
-        ],
-        facts: [
-            "Üzvi tullantılar poliqonda metan qazı buraxır — CO₂-dən 80x güclü istilik qazıdır.",
-            "Qida tullantıları dünya emissiyalarının 8-10%-ni təşkil edir.",
-            "Kompostlama metan emissiyasını 60% azalda bilər.",
-            "1 ton qida tullantısının kompostlanması 0.5 ton CO₂-ə bərabərdir.",
-            "Azərbaycanda illik ~300,000 ton qida tullantısı poliqona atılır."
-        ],
-        timeline: ["Toplama 🗑","Ayrılma 🌿","Parçalanma 🦠","Kompostlama 🌡️","Yetişmə ⏳","Gübrə ✨"]
-    }
-};
-
-/* ══ RESULT ENRICHMENT ══ */
-const resultSection = document.getElementById('result-section');
-if (resultSection) {
-    const label = resultSection.dataset.label;
-    const data  = WASTE_DATA[label];
-
-    if (data) {
-        // Impact cards
-        const impactEl = document.getElementById('impact-cards');
-        data.impactCards.forEach((card, i) => {
-            const el = document.createElement('div');
-            el.className = 'impact-card';
-            el.style.animationDelay = `${i * 0.08}s`;
-            el.innerHTML = `<div class="ic-icon">${card.icon}</div><div class="ic-val">${card.value}</div><div class="ic-lbl">${card.label}</div><div class="ic-sub">${card.sub}</div>`;
-            impactEl.appendChild(el);
-        });
-
-        // Did you know
-        let dykIndex = 0;
-        const dykText = document.getElementById('dyk-text');
-        const dykDots = document.getElementById('dyk-dots');
-        function renderDYK() {
-            dykText.style.opacity = '0';
-            setTimeout(() => { dykText.textContent = data.facts[dykIndex]; dykText.style.opacity = '1'; }, 200);
-            dykDots.innerHTML = data.facts.map((_,i) => `<span class="dyk-dot${i===dykIndex?' active':''}"></span>`).join('');
-        }
-        dykText.style.transition = 'opacity 0.3s';
-        renderDYK();
-        document.getElementById('dyk-next').addEventListener('click', () => { dykIndex=(dykIndex+1)%data.facts.length; renderDYK(); });
-        setInterval(() => { dykIndex=(dykIndex+1)%data.facts.length; renderDYK(); }, 6000);
-
-        // Timeline
-        const tlEl = document.getElementById('timeline');
-        data.timeline.forEach(step => {
-            const parts = step.split(' ');
-            const emoji = parts[parts.length-1];
-            const txt   = parts.slice(0,-1).join(' ');
-            const el    = document.createElement('div');
-            el.className = 'tl-step';
-            el.innerHTML = `<div class="tl-dot">${emoji}</div><div class="tl-lbl">${txt}</div>`;
-            tlEl.appendChild(el);
-        });
-    }
-
-    // Share
-    document.getElementById('share-result')?.addEventListener('click', () => {
-        const text = `EcoSort AI: Bu tullantı ${label} kateqoriyasına aiddir! ♻️`;
-        if (navigator.share) { navigator.share({title:'EcoSort AI', text}).catch(()=>{}); }
-        else { navigator.clipboard.writeText(text).then(()=>showToast('📋 Kopyalandı!','info')); }
-    });
-
-    setTimeout(() => resultSection.scrollIntoView({behavior:'smooth', block:'start'}), 300);
-}
-</script>
-</body>
-</html>
+<input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden>
+<input type="file" id="camera-input" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+<div id="preview-box" hidden><div class="preview-stage"><img id="preview-img" alt="Analiz üçün seçilmiş şəkil"></div><div class="file-row"><div class="file-details"><strong id="file-name"></strong><span id="file-size"></span></div><button class="text-button" id="change-file">Dəyiş</button><button class="text-button danger" id="remove-file">Sil</button></div></div>
+<button class="text-button camera-button" id="camera-button">▣ Kamera ilə çək</button>
+<div class="upload-tip"><span aria-hidden="true">ⓘ</span><p>Bir tullantını aydın fonda çəkin. Obyekt bütöv görünsün və işıq kifayət qədər olsun.</p></div>
+<div class="analysis-action"><button class="button primary" id="analyze" disabled>Analiz et <span aria-hidden="true">→</span></button><span id="status" role="status" aria-live="polite">Şəkil gözlənilir</span></div>
+<p id="error" class="error" role="alert" hidden></p>
+</div></section>
+<section class="panel result-panel" aria-labelledby="result-heading" aria-busy="false" id="result-panel">
+<div class="panel-heading"><h2 id="result-heading"><span class="step">02</span> Analiz nəticəsi</h2><span class="status-tag" id="result-status">Gözlənilir</span></div>
+<div id="result-empty" class="result-empty"><div class="result-outline" aria-hidden="true">≋</div><h3>Nəticə burada görünəcək</h3><p>Şəkil seçib «Analiz et» düyməsinə basın.<br>Modelin nəticəsini burada görəcəksiniz.</p><div class="empty-steps"><span>Şəkil</span><span aria-hidden="true">→</span><span>Analiz</span><span aria-hidden="true">→</span><span>Nəticə</span></div></div>
+<div id="result-content" class="result-content" hidden></div>
+</section>
+</div>
+<div class="below-workspace"><span>ⓘ Bu model şəkil üçün bir əsas kateqoriya müəyyən edir.</span><button class="text-button" data-view="history">Analiz tarixçəsinə bax <span aria-hidden="true">↗</span></button></div>
+<div class="category-strip"><span class="eyebrow">MODELİN KATEQORİYALARI</span><div id="category-list"></div></div>
+</section>
+<section id="history-view" class="view" hidden><div class="page-heading"><div><p class="eyebrow">SAXLANMIŞ NƏTİCƏLƏR</p><h1>Analiz tarixçəsi</h1><p>Bu brauzerdə saxlanmış son 50 real analiz. Digər cihazlarla sinxronlaşmır.</p></div></div><div class="panel"><div class="filters"><label>Kateqoriya<select id="category-filter"><option value="">Hamısı</option></select></label><label>Başlanğıc tarixi<input id="date-from" type="date"></label><label>Son tarix<input id="date-to" type="date"></label><button class="button" id="reset-filters">Filtrləri sıfırla</button></div><div id="history-empty" class="table-empty">Hələ analiz yoxdur. İlk şəklinizi analiz edərək başlayın.</div><div class="table-scroll" id="history-table-wrap" hidden><table><caption class="sr-only">Saxlanmış analizlər</caption><thead><tr><th>Şəkil</th><th>Kateqoriya</th><th>Modelin etibarı</th><th>Tarix və saat</th><th>Nəticə</th></tr></thead><tbody id="history-body"></tbody></table></div></div></section>
+<section id="stats-view" class="view" hidden><div class="page-heading"><div><p class="eyebrow">ANALİZ İCMALI</p><h1>Statistika</h1><p>Yalnız bu brauzerdə saxlanmış analizlər əsasında hesablanır.</p></div></div><div class="panel stats-panel"><div class="panel-heading"><h2>Kateqoriyalar üzrə bölgü</h2><span id="stats-total">0 analiz</span></div><div id="stats-empty" class="table-empty">Diaqram üçün hələ məlumat yoxdur. İlk analizinizi tamamlayın.</div><div id="chart" class="chart" hidden role="img" aria-label="Kateqoriyalar üzrə analiz sayı"></div></div></section>
+<p id="storage-note" class="error" role="status" hidden></p>
+<footer><span>EcoSort</span><span>Etibar göstəricisi nəticənin düzgünlük zəmanəti deyil.</span></footer>
+<noscript><p class="error">Analiz iş sahəsi üçün brauzerdə JavaScript aktiv olmalıdır.</p></noscript>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+</main></div>
+</body></html>
