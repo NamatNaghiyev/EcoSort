@@ -1,0 +1,8 @@
+dataset/
+raw_dataset/
+results/
+static/uploads/
+models/best_model.keras
+models/*.png
+.venv/
+__pycache__/

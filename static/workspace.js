@@ -34,7 +34,7 @@
     if(busy||!file)return;
     clearSelection();const version=selectionVersion;
     if(!/\.(jpe?g|png|webp)$/i.test(file.name)|| (file.type && !['image/jpeg','image/png','image/webp'].includes(file.type))){showError('Yalnız JPG, PNG və WebP faylları qəbul edilir.');return;}
-    if(file.size>15*1024*1024||file.size===0){showError('Fayl boş olmamalı və 15 MB-dan böyük olmamalıdır.');return;}
+    if(file.size>3.5*1024*1024||file.size===0){showError('Fayl boş olmamalı və 3.5 MB-dan böyük olmamalıdır.');return;}
     $('status').textContent='Şəkil yüklənir…';
     const url=URL.createObjectURL(file);
     try{const img=new Image();img.src=url;await img.decode();if(version!==selectionVersion)return;
@@ -64,7 +64,7 @@
   }
   $('analyze').addEventListener('click',async()=>{
     if(!selectedFile||busy)return;clearResult();$('error').hidden=true;setBusy(true);$('status').textContent='Şəkil göndərilir…';$('result-status').textContent='Analiz edilir';
-    const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),90000);
+    const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),180000);
     try{const form=new FormData();const suffix=selectedFile.name.split('.').pop().toLowerCase();form.append('image',selectedFile,`ecosort-${crypto.randomUUID()}.${suffix}`);$('status').textContent='Analiz edilir…';
       const response=await fetch('/api/predict',{method:'POST',body:form,signal:controller.signal});
       if(!response.ok){if(response.status===413)throw Error('Server faylı qəbul etmədi: ölçü limitini yoxlayın.');if(response.status>=500)throw Error('Analiz xidməti hazırda cavab verə bilmir. Bir az sonra yenidən sınayın.');let payload;try{payload=await response.json();}catch{}throw Error(payload?.error||'Şəkil qəbul edilmədi. Başqa şəkillə sınayın.');}

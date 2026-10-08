@@ -1,43 +1,27 @@
 import os
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
 import json
+import threading
+import warnings
+from pathlib import Path
 import numpy as np
-from PIL import Image
-import tensorflow as tf
+from PIL import Image, ImageOps, UnidentifiedImageError
 from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
-from tensorflow.keras import layers, models
-from tensorflow.keras.applications import MobileNetV2
+from werkzeug.exceptions import RequestEntityTooLarge
 
-# ════════════════════════════════════════════════════════════════════════
-# Konfiqurasiya
-# ════════════════════════════════════════════════════════════════════════
-
-UPLOAD_FOLDER    = "static/uploads"
-WEIGHTS_PATH     = "models/best_weights.weights.h5"
-CLASS_NAMES_PATH = "models/class_names.json"
-IMG_SIZE         = (224, 224)
+BASE_DIR = Path(__file__).resolve().parent
+WEIGHTS_PATH = BASE_DIR / "models/best_weights.weights.h5"
+CLASS_NAMES_PATH = BASE_DIR / "models/class_names.json"
+IMG_SIZE = (224, 224)
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "bmp"}
-
+Image.MAX_IMAGE_PIXELS = 25_000_000
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-
-# ════════════════════════════════════════════════════════════════════════
-# Class adları
-# ════════════════════════════════════════════════════════════════════════
-
-with open(CLASS_NAMES_PATH, "r", encoding="utf-8") as f:
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024
+with CLASS_NAMES_PATH.open(encoding="utf-8") as f:
     CLASS_NAMES = json.load(f)
-
 NUM_CLASSES = len(CLASS_NAMES)
-
-
-# ════════════════════════════════════════════════════════════════════════
-# Tullantı məlumatları
-# ════════════════════════════════════════════════════════════════════════
 
 WASTE_INFO = {
     "plastic": {
@@ -93,12 +77,11 @@ WASTE_INFO = {
 }
 
 
-# ════════════════════════════════════════════════════════════════════════
-# Model qurulması və yüklənməsi
-# ════════════════════════════════════════════════════════════════════════
-
 def build_waste_model(num_classes):
-    base = MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights="imagenet")
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    from tensorflow.keras.applications import MobileNetV2
+    base = MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights=None)
     base.trainable = False
     inputs = tf.keras.Input(shape=(224, 224, 3))
     x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
@@ -113,145 +96,84 @@ def build_waste_model(num_classes):
     return models.Model(inputs, outputs)
 
 
-print("⏳ Model yüklənir...")
-waste_model = build_waste_model(NUM_CLASSES)
-waste_model.load_weights(WEIGHTS_PATH)
-print(f"✅ Model hazırdır → siniflər: {CLASS_NAMES}")
+waste_model = None
+model_lock = threading.Lock()
 
+def get_model():
+    global waste_model
+    with model_lock:
+        if waste_model is None:
+            model = build_waste_model(NUM_CLASSES)
+            model.load_weights(str(WEIGHTS_PATH))
+            waste_model = model
+    return waste_model
 
-# ════════════════════════════════════════════════════════════════════════
-# Köməkçi funksiyalar
-# ════════════════════════════════════════════════════════════════════════
 
 def allowed_file(filename):
-    return "." in filename and \
-           filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    return bool(filename) and "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def predict_image(image_path, top_k=3):
-    """
-    Hər hansı şəkili oxuyub tullantı kateqoriyasına aid edir.
-    Heç bir gate və ya OOD bloku yoxdur — şəkil həmişə analiz edilir.
-    """
-    # ── Şəkili oxu ────────────────────────────────────────────────────────
+def predict_image(image_source, top_k=3):
     try:
-        img = Image.open(image_path).convert("RGB")
-    except Exception:
-        raise ValueError("Şəkil oxuna bilmədi. Düzgün şəkil faylı yükləyin.")
-
-    w, h = img.size
-    if w < 32 or h < 32:
-        raise ValueError("Şəkil çox kiçikdir. Minimum 32×32 piksel tələb olunur.")
-
-    # ── Ölçüləndirmə və preprocessing ─────────────────────────────────────
-    img       = img.resize(IMG_SIZE)
-    img_array = np.array(img, dtype=np.float32)
-    img_array = np.expand_dims(img_array, axis=0)   # (1, 224, 224, 3)
-
-    # ── Model proqnozu ─────────────────────────────────────────────────────
-    preds = waste_model.predict(img_array, verbose=0)[0]
-
-    top_indices = np.argsort(preds)[::-1][:top_k]
-    label       = CLASS_NAMES[top_indices[0]]
-    confidence  = float(preds[top_indices[0]])
-    top_results = [
-        {"label": CLASS_NAMES[i], "confidence": round(float(preds[i]) * 100, 2)}
-        for i in top_indices
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(image_source) as source:
+                if source.width < 32 or source.height < 32:
+                    raise ValueError("Şəkil ən azı 32 × 32 piksel olmalıdır.")
+                if source.width * source.height > 25_000_000:
+                    raise ValueError("Şəkil 25 meqapikseldən böyük olmamalıdır.")
+                if source.format not in {"JPEG", "PNG", "WEBP", "BMP"}:
+                    raise ValueError("Dəstəklənməyən şəkil formatı.")
+                img = ImageOps.exif_transpose(source).convert("RGB").resize(IMG_SIZE, Image.Resampling.BILINEAR)
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+        raise ValueError("Şəkil oxuna bilmədi. Düzgün şəkil faylı seçin.") from exc
+    batch = np.expand_dims(np.asarray(img, dtype=np.float32), axis=0)
+    # Direct inference avoids an extra tf.data threadpool for each web request.
+    preds = np.asarray(get_model()(batch, training=False))[0]
+    if preds.shape != (NUM_CLASSES,) or not np.all(np.isfinite(preds)):
+        raise RuntimeError("Invalid model output")
+    indices = np.argsort(preds)[::-1][:top_k]
+    return CLASS_NAMES[indices[0]], float(preds[indices[0]]), [
+        {"label": CLASS_NAMES[i], "confidence": round(float(preds[i]) * 100, 2)} for i in indices
     ]
 
-    return label, confidence, top_results
 
-
-# ════════════════════════════════════════════════════════════════════════
-# Əsas route
-# ════════════════════════════════════════════════════════════════════════
-
-@app.route("/", methods=["GET", "POST"])
+@app.get("/")
 def index():
-    result, image_path, error = None, None, None
-
-    if request.method == "POST":
-        if "image" not in request.files:
-            error = "Şəkil tapılmadı."
-            return render_template("index.html", result=result,
-                                   image_path=image_path, error=error)
-
-        file = request.files["image"]
-
-        if file.filename == "":
-            error = "Şəkil seçilməyib."
-            return render_template("index.html", result=result,
-                                   image_path=image_path, error=error)
-
-        if not allowed_file(file.filename):
-            error = (f"❌ Dəstəklənməyən format. "
-                     f"Yalnız {', '.join(e.upper() for e in ALLOWED_EXTENSIONS)} qəbul edilir.")
-            return render_template("index.html", result=result,
-                                   image_path=image_path, error=error)
-
-        filename  = secure_filename(file.filename)
-        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(save_path)
-
-        try:
-            label, confidence, top_results = predict_image(save_path)
-
-            info = WASTE_INFO.get(label, {
-                "bin": "Naməlum", "color": "—", "emoji": "❓",
-                "description": "Bu sinif üçün məlumat tapılmadı.", "tips": []
-            })
-
-            result = {
-                "label":          label,
-                "confidence":     round(confidence * 100, 2),
-                "bin":            info["bin"],
-                "color":          info["color"],
-                "emoji":          info["emoji"],
-                "description":    info["description"],
-                "tips":           info["tips"],
-                "top_results":    top_results,
-                "low_confidence": confidence < 0.50
-            }
-            image_path = save_path.replace("\\", "/")
-
-        except ValueError as e:
-            error = f"⚠️ {str(e)}"
-        except Exception as e:
-            error = f"❌ Gözlənilməz xəta: {str(e)}"
-
-    return render_template("index.html", result=result,
-                           image_path=image_path, error=error)
+    return render_template("index.html")
 
 
-# ════════════════════════════════════════════════════════════════════════
-# API endpoint
-# ════════════════════════════════════════════════════════════════════════
+@app.get("/api/health")
+def health():
+    present = WEIGHTS_PATH.is_file()
+    return jsonify({"status": "ok" if present else "model_missing", "model_loaded": waste_model is not None,
+                    "model_available": present, "categories": CLASS_NAMES}), 200 if present else 503
 
-@app.route("/api/predict", methods=["POST"])
+
+@app.errorhandler(RequestEntityTooLarge)
+def too_large(error):
+    return jsonify({"error": "Fayl ölçüsü limiti aşıldı. 3.5 MB-dan kiçik şəkil seçin."}), 413
+
+
+@app.post("/api/predict")
 def api_predict():
-    if "image" not in request.files:
-        return jsonify({"error": "Şəkil tapılmadı"}), 400
-
-    file = request.files["image"]
+    file = request.files.get("image")
+    if file is None or not file.filename:
+        return jsonify({"error": "Şəkil seçilməyib."}), 400
     if not allowed_file(file.filename):
-        return jsonify({"error": "Yanlış fayl formatı"}), 400
-
-    filename  = secure_filename(file.filename)
-    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(save_path)
-
+        return jsonify({"error": "Yanlış fayl formatı."}), 400
     try:
-        label, confidence, top_results = predict_image(save_path)
-        return jsonify({
-            "label":       label,
-            "confidence":  round(confidence * 100, 2),
-            "top_results": top_results
-        })
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        label, confidence, top_results = predict_image(file.stream)
+        info = WASTE_INFO.get(label, {})
+        return jsonify({"label": label, "confidence": round(confidence * 100, 2),
+                        "top_results": top_results, "low_confidence": confidence < 0.5,
+                        "description": info.get("description"), "tips": info.get("tips", [])})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        app.logger.exception("Image inference failed")
+        return jsonify({"error": "Model analizi tamamlaya bilmədi. Bir az sonra yenidən sınayın."}), 503
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
