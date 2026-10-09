@@ -58,7 +58,12 @@
     const info=category(data.label),head=element('div','result-category');head.append(element('span','category-icon',info.icon));const title=element('div');title.append(element('p','eyebrow','MÜƏYYƏN EDİLƏN KATEQORİYA'),element('h3','',info.name));head.append(title);root.append(head);
     const c=confidence(data.confidence);
     if(c!==null){const row=element('div','confidence-row');row.append(element('span','','Modelin etibar göstəricisi'),element('strong','',percent(c)));const meter=element('div','meter'),fill=element('div','meter-fill');fill.style.width=`${c}%`;meter.append(fill);root.append(row,meter,element('p','confidence-note','Bu göstərici nəticənin düzgünlük zəmanəti deyil.'));if(c<75)root.append(element('p','warning','Nəticə qeyri-müəyyəndir. Obyekti daha yaxın, aydın fonda çəkin və yenidən yoxlayın.'));}
-    if(!modelLabels.includes(data.label))root.append(element('p','warning','Bu nəticə dəstəklənən kateqoriyalardan birinə uyğun gəlmir. Əl ilə yoxlayın.'));
+    if(data.review_reason)root.append(element('p','warning',data.review_reason));
+    if(data.suggested_label&&categories[data.suggested_label])
+      root.append(element('p','confidence-note',
+        'Modelin təsdiqlənməmiş təklifi: '+categories[data.suggested_label].name+
+        '. Model etibarı kateqoriyanın düzgünlüyünə zəmanət vermir.'));
+    if(!modelLabels.includes(data.label))root.append(element('p','warning','Bu görüntü tullantı kateqoriyası kimi təsdiqlənməyib. Əl ilə yoxlayın.'));
     const recommendation=element('div','recommendation');recommendation.append(element('h4','','Çeşidləmə tövsiyəsi'),element('p','',info.description+' '+info.tip));root.append(recommendation);
     const alternatives=Array.isArray(data.top_results)?data.top_results.filter(item=>item&&typeof item.label==='string'&&confidence(item.confidence)!==null):[];
     if(alternatives.length){const list=element('div','alternatives');list.append(element('h4','','Modelin qaytardığı ehtimallar'));alternatives.forEach(item=>{const row=element('div','alternative');row.append(badge(item.label),element('span','',percent(item.confidence)));list.append(row);});root.append(list);}
@@ -66,17 +71,106 @@
     const route=element('button','button','Qərar və ReflexGrip →');route.addEventListener('click',()=>{document.dispatchEvent(new CustomEvent('ecosort:use-prediction',{detail:data}));navigate('reflex');});root.append(route);
     const historyButton=element('button','text-button','Tarixçəyə bax ↗');historyButton.addEventListener('click',()=>navigate('history'));root.append(historyButton);
   }
+  function manualResult(reason,modelResult=null){
+    const suggestion=modelResult?.suggested_label||modelResult?.label||null;
+    return {label:'unknown',confidence:modelResult?.confidence??null,
+      top_results:modelResult?.top_results||[],suggested_label:suggestion,
+      review_reason:reason,low_confidence:true,model_version:modelResult?.model_version||null,
+      decision:{action:'review',destination:'Operator yoxlaması',reason,hardware_connected:false}};
+  }
+  const objectClasses={
+    bottle:['plastic','glass','metal'],
+    cup:['plastic','glass','paper','metal'],
+    'wine glass':['glass'],
+    banana:['organic'],apple:['organic'],orange:['organic'],carrot:['organic'],
+    broccoli:['organic'],sandwich:['organic'],pizza:['organic'],
+    donut:['organic'],cake:['organic']
+  };
+  async function inspectUpload(){
+    if(!window.EcoSortCameraGuard)throw Error('Obyekt detektoru hazır deyil.');
+    const img=new Image();img.src=selectedImage;await img.decode();
+    const canvas=document.createElement('canvas');
+    canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('Şəklin analizi üçün canvas hazırlana bilmədi.');
+    ctx.drawImage(img,0,0);
+    const scan=await window.EcoSortCameraGuard.inspect(canvas);
+    const candidate=scan.detected_waste_candidates.length===1?scan.detected_waste_candidates[0]:null;
+    let processed=null;
+    if(candidate&&scan.suggested_box){
+      const b=scan.suggested_box,margin=.08;
+      const x=Math.max(0,b.x-b.w*margin),y=Math.max(0,b.y-b.h*margin);
+      const right=Math.min(1,b.x+b.w*(1+margin)),bottom=Math.min(1,b.y+b.h*(1+margin));
+      const c=document.createElement('canvas');
+      c.width=Math.max(32,Math.round(canvas.width*(right-x)));
+      c.height=Math.max(32,Math.round(canvas.height*(bottom-y)));
+      c.getContext('2d').drawImage(canvas,x*canvas.width,y*canvas.height,
+        (right-x)*canvas.width,(bottom-y)*canvas.height,0,0,c.width,c.height);
+      processed=await new Promise((resolve,reject)=>
+        c.toBlob(blob=>blob?resolve(blob):reject(Error('Obyekt sahəsi oxunmadı.')),'image/jpeg',.85));
+    }
+    return {scan,candidate,processed};
+  }
   $('analyze').addEventListener('click',async()=>{
-    if(!selectedFile||busy)return;clearResult();$('error').hidden=true;setBusy(true);$('status').textContent='Şəkil göndərilir…';$('result-status').textContent='Analiz edilir';
-    const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),180000);
-    try{const form=new FormData();const suffix=selectedFile.name.split('.').pop().toLowerCase();form.append('image',selectedFile,`ecosort-${crypto.randomUUID()}.${suffix}`);$('status').textContent='Analiz edilir…';
+    if(!selectedFile||busy)return;
+    clearResult();$('error').hidden=true;setBusy(true);$('status').textContent='Obyekt yoxlanılır…';$('result-status').textContent='Analiz edilir';
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),180000);
+    try{
+      let screening;
+      try{
+        screening=await inspectUpload();
+      }catch(error){
+        renderResult(manualResult('Obyekt detektoru əlçatan deyil. Təhlükəsizlik üçün şəkil tullantı kimi təsdiqlənmədi.'));
+        $('status').textContent='Operator yoxlaması';
+        return;
+      }
+      if(screening.scan.blocked){
+        renderResult(manualResult(screening.scan.message));
+        $('status').textContent='Operator yoxlaması';
+        return;
+      }
+      const form=new FormData();
+      const filename='ecosort-'+crypto.randomUUID();
+      if(screening.processed){
+        form.append('image',screening.processed,filename+'.jpg');
+      }else{
+        const suffix=selectedFile.name.split('.').pop().toLowerCase();
+        form.append('image',selectedFile,filename+'.'+suffix);
+      }
+      $('status').textContent='Model nəticəsi hesablanır…';
       const response=await fetch('/api/predict',{method:'POST',body:form,signal:controller.signal});
-      if(!response.ok){if(response.status===413)throw Error('Server faylı qəbul etmədi: ölçü limitini yoxlayın.');if(response.status>=500)throw Error('Analiz xidməti hazırda cavab verə bilmir. Bir az sonra yenidən sınayın.');let payload;try{payload=await response.json();}catch{}throw Error(payload?.error||'Şəkil qəbul edilmədi. Başqa şəkillə sınayın.');}
-      const data=await response.json();if(!data||typeof data.label!=='string'||!data.label.trim()||data.error)throw Error('Server etibarlı analiz nəticəsi qaytarmadı.');
-      renderResult(data);$('status').textContent='Tamamlandı';
-      const img=$('preview-img'),canvas=document.createElement('canvas');const scale=Math.min(1,160/Math.max(img.naturalWidth,img.naturalHeight));canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const record={id:crypto.randomUUID(),label:data.label,confidence:confidence(data.confidence),top_results:Array.isArray(data.top_results)?data.top_results:[],createdAt:new Date().toISOString(),thumbnail:canvas.toDataURL('image/jpeg',.65),filename:selectedFile.name,model_version:data.model_version,decision:data.decision};saveRecord(record);renderResult(record);
-    }catch(err){$('result-status').textContent='Xəta';showError(err.name==='AbortError'?'Analiz üçün gözləmə vaxtı bitdi. Yenidən sınayın.':err instanceof TypeError?'Serverə qoşulmaq mümkün olmadı. İnternet bağlantısını yoxlayın.':err.message);}finally{clearTimeout(timeout);setBusy(false);}
+      if(!response.ok){
+        if(response.status===413)throw Error('Server faylı qəbul etmədi: ölçü limitini yoxlayın.');
+        if(response.status>=500)throw Error('Analiz xidməti hazırda cavab verə bilmir. Bir az sonra yenidən sınayın.');
+        let payload;try{payload=await response.json();}catch{}
+        throw Error(payload?.error||'Şəkil qəbul edilmədi. Başqa şəkillə sınayın.');
+      }
+      let data=await response.json();
+      if(!data||typeof data.label!=='string'||!data.label.trim()||data.error)
+        throw Error('Server etibarlı analiz nəticəsi qaytarmadı.');
+      if(!screening.candidate){
+        data=manualResult('Obyekt detektoru dəstəklənən tullantı obyekti tapa bilmədi. Nəticə yalnız model təklifidir.',data);
+      }else if(!objectClasses[screening.candidate]?.includes(data.label)){
+        data=manualResult('Detektorun gördüyü obyekt ilə modelin material sinfi uyğun gəlmir.',data);
+      }
+      renderResult(data);
+      $('status').textContent=data.label==='unknown'?'Operator yoxlaması':'İlkin təsnifat';
+      const img=$('preview-img'),canvas=document.createElement('canvas');
+      const scale=Math.min(1,160/Math.max(img.naturalWidth,img.naturalHeight));
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      const record={id:crypto.randomUUID(),label:data.label,
+        confidence:confidence(data.confidence),top_results:Array.isArray(data.top_results)?data.top_results:[],
+        createdAt:new Date().toISOString(),thumbnail:canvas.toDataURL('image/jpeg',.65),
+        filename:selectedFile.name,model_version:data.model_version,decision:data.decision,
+        review_reason:data.review_reason,suggested_label:data.suggested_label};
+      saveRecord(record);renderResult(record);
+    }catch(err){
+      $('result-status').textContent='Xəta';
+      showError(err.name==='AbortError'?'Analiz üçün gözləmə vaxtı bitdi. Yenidən sınayın.':
+        err instanceof TypeError?'Serverə qoşulmaq mümkün olmadı. İnternet bağlantısını yoxlayın.':err.message);
+    }finally{clearTimeout(timeout);setBusy(false);}
   });
   const dateKey=value=>{const d=new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
   function renderHistory(){
