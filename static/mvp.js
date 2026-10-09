@@ -46,40 +46,69 @@
   const metric=(label,value)=>{const row=node('div','decision-metric');row.append(node('span','',label),node('strong','',value));return row;};
   function showDecision(data){
     result.replaceChildren();
-    const kind=names[data.label]||'Naməlum kateqoriya';
-    result.append(node('strong','',kind),node('p','',`Model sinfi: ${data.label||'naməlum'}`));
+    const review = data.low_confidence === true || data.accepted === false ||
+      data.robot_plan?.code === 'MANUAL_REVIEW';
+    const kind = names[data.label] || 'Naməlum kateqoriya';
+    result.append(node('strong','',review?'Operator yoxlaması tələb olunur':kind),
+      node('p','',review?(data.review_reason||'Avtomatik çeşidləmə üçün etibar kifayət etmir.'):('Model sinfi: '+data.label)));
+    if (Array.isArray(data.frame_labels)) {
+      result.append(metric('Üç kadrın nəticəsi',
+        data.frame_labels.map(label=>names[label]||'Naməlum').join(' / ')));
+      result.append(node('p','','Yalnız üç kadrın eyni nəticəyə gəlməsi kifayət deyil; etibar hədləri də yoxlanılır.'));
+    }
     const conf=Number(data.confidence);
-    result.append(metric('Modelin etibar göstəricisi',Number.isFinite(conf)?conf.toFixed(1)+'%':'—'));
+    result.append(metric('Orta model etibarı (kalibrasiya olunmayıb)',
+      Number.isFinite(conf)?conf.toFixed(1)+'%':'—'));
     const plan=data.robot_plan;
     if(plan&&typeof plan.code==='string'){
       const label=node('span','decision-pill'+(plan.route==='review'?' review':''),routes[plan.code]||plan.code);
-      const routeRow=node('div','decision-metric');routeRow.append(node('span','','Marşrut qərarı'),label);result.append(routeRow);
-      result.append(node('p','',plan.reason||''),node('div','sim-warning','SIMULYASİYA — Robot qoluna heç bir əmr göndərilməyib. Koordinat, kamera kalibrasiyası və avadanlıq təhlükəsizliyi tamamlanmayıb.'));
-      log('AI: '+kind+' ('+(Number.isFinite(conf)?conf.toFixed(1)+'%':'?')+'); plan: '+(routes[plan.code]||plan.code)+'; fiziki icra: YOX');
+      const routeRow=node('div','decision-metric');
+      routeRow.append(node('span','','Marşrut qərarı'),label);result.append(routeRow);
+      result.append(node('p','',plan.reason||''),node('div','sim-warning',
+        'SIMULYASİYA — Robot qoluna heç bir əmr göndərilməyib. Kamera kadrları bir-birindən asılı ola bilər. Koordinat və avadanlıq kalibrasiyası tamamlanmayıb.'));
+      log('AI: '+(review?'Yoxlama tələb olunur':kind)+' ('+(Number.isFinite(conf)?conf.toFixed(1)+'%':'?')+
+        '); plan: '+(routes[plan.code]||plan.code)+'; fiziki icra: YOX');
     }else{
-      result.append(node('p','', 'Backend robot marşrut planı qaytarmadı. Fiziki icra mümkün deyil.'));
+      result.append(node('p','','Backend robot marşrut planı qaytarmadı. Fiziki icra mümkün deyil.'));
       log('AI təsnifatı alındı, lakin robot planı yoxdur.');
     }
   }
   async function capture(){
     if(!mediaStream||running||!video.videoWidth){cameraError('Kamera görüntüsü hazır deyil.');return;}
     running=true;cameraButtons();$('camera-error').hidden=true;
-    $('decision-status').textContent='AI analiz edir…';
+    $('decision-status').textContent='3 kadr yoxlanılır…';
+    const epoch=cameraEpoch;
     let timeout;
     try{
+      const form=new FormData();
       const canvas=document.createElement('canvas'),scale=Math.min(1,960/Math.max(video.videoWidth,video.videoHeight));
-      canvas.width=Math.max(32,Math.round(video.videoWidth*scale));canvas.height=Math.max(32,Math.round(video.videoHeight*scale));
-      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-      const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.82));
-      $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.65);$('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
-      const form=new FormData();form.append('image',blob,'camera-frame.jpg');
+      canvas.width=Math.max(32,Math.round(video.videoWidth*scale));
+      canvas.height=Math.max(32,Math.round(video.videoHeight*scale));
+      const ctx=canvas.getContext('2d');
+      if(!ctx)throw Error('Kamera kadrı hazırlana bilmədi.');
+      for(let i=0;i<3;i++){
+        if(epoch!==cameraEpoch||!mediaStream||!video.videoWidth)
+          throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const blob=await new Promise((resolve,reject)=>
+          canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.84));
+        form.append('frames',blob,'camera-frame-'+(i+1)+'.jpg');
+        if(i===1){
+          $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.65);
+          $('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
+        }
+        if(i<2)await new Promise(resolve=>setTimeout(resolve,220));
+      }
+      if(epoch!==cameraEpoch)throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
       const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),150000);
-      log('Real kamera kadrı modelə göndərildi.');
-      const response=await fetch('/api/predict',{method:'POST',body:form,signal:controller.signal});
+      log('Üç kamera kadrı eyni sorğu ilə modelə göndərildi.');
+      const response=await fetch('/api/predict-burst',{method:'POST',body:form,signal:controller.signal});
       const data=await response.json().catch(()=>({error:'Server JSON cavabı vermədi.'}));
+      if(epoch!==cameraEpoch)throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
       if(!response.ok||data.error)throw Error(data.error||'Analiz serveri cavab vermədi ('+response.status+').');
-      if(typeof data.label!=='string')throw Error('Model etibarlı sinif qaytarmadı.');
-      showDecision(data);$('decision-status').textContent='Analiz tamamlandı';
+      if(typeof data.label!=='string'||data.frames_analyzed!==3)throw Error('Kamera analizinin cavabı düzgün deyil.');
+      showDecision(data);
+      $('decision-status').textContent=data.accepted?'Üç kadr uyğun gəldi':'Əl ilə yoxlama';
     }catch(error){
       $('decision-status').textContent='Analiz uğursuz';
       cameraError(error?.name==='AbortError'?'Analiz vaxtı bitdi; backend modelini yoxlayın.':error.message||'Analiz alınmadı.');
