@@ -484,9 +484,6 @@
     ['kadr (obyekt sayı deyil)', 'frames (not object count)'],
     ['kadr analiz edilir', 'frame being analyzed'],
     ['bölgə analiz edilir', 'region being analyzed'],
-    ['kadr', 'frame'],
-    ['bölgə', 'region'],
-    ['analiz', 'analyses'],
     ['saniyə', 'seconds']
   ];
   const esc=s=>s.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\$&');
@@ -495,6 +492,17 @@
     if(!value || !value.trim())return value;
     const match=/^(\s*)([\s\S]*?)(\s*)$/.exec(value);
     const body=match[2];
+    const frame=/^(Kadr|Bölgə) ([0-9]+)\/([0-9]+) analiz edilir…$/.exec(body);
+    if(frame)return match[1]+(frame[1]==='Kadr'?'Frame ':'Region ')+frame[2]+'/'+frame[3]+' being analyzed…'+match[3];
+    const count=/^([0-9]+) analiz$/.exec(body);
+    if(count)return match[1]+count[1]+' analyses'+match[3];
+    const framesDone=/^Tamamlandı · ([0-9]+) kadr \(obyekt sayı deyil\)$/.exec(body);
+    if(framesDone)return match[1]+'Completed · '+framesDone[1]+' frames (not object count)'+match[3];
+    const regionsDone=/^Tamamlandı · ([0-9]+) bölgə$/.exec(body);
+    if(regionsDone)return match[1]+'Completed · '+regionsDone[1]+' regions'+match[3];
+    const regionCount=/^([0-9]+) əl ilə seçilmiş bölgə$/.exec(body);
+    if(regionCount)return match[1]+regionCount[1]+' manually selected regions'+match[3];
+
     if(Object.prototype.hasOwnProperty.call(translations,body))return match[1]+translations[body]+match[3];
     // Dynamic strings may contain counts, categories, and user-entered values.
     let result=body;
