@@ -26,7 +26,7 @@
       if(!root.cocoSsd)await loadScript(coco);
       if(!root.cocoSsd||!root.EcoSortCameraGuardCore)
         throw Error('Kamera obyekt detektoru hazır deyil.');
-      return root.cocoSsd.load({base:'lite_mobilenet_v2'});
+      return root.cocoSsd.load('lite_mobilenet_v2');
     })().catch(error=>{pending=null;throw error;});
     return pending;
   }
