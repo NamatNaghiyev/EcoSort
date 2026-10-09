@@ -57,22 +57,22 @@
         blocked.push({category,score,area:overlap,box});
       }else if(wasteCandidates.has(category)&&score>=0.55&&regionRatio>=0.02){
         candidates.push({category,score,area:overlap,
-          box:{x:box.x/width,y:box.y/height,w:box.w/width,h:box.h/height}});
+          pixelBox:box,box:{x:box.x/width,y:box.y/height,w:box.w/width,h:box.h/height}});
       }
     }
     blocked.sort((a,b)=>b.score-a.score);
     // Central, distinct recyclables are preferred; object class is not a material label.
     const focus = item => {
-      const cx=(item.box.x+item.box.w/2)/width,cy=(item.box.y+item.box.h/2)/height;
+      const cx=(item.pixelBox.x+item.pixelBox.w/2)/width,cy=(item.pixelBox.y+item.pixelBox.h/2)/height;
       const distance=Math.hypot(cx-.5,cy-.5);
-      const size=Math.sqrt(Math.min(1,item.box.w*item.box.h/(width*height)));
+      const size=Math.sqrt(Math.min(1,item.pixelBox.w*item.pixelBox.h/(width*height)));
       return item.score*.55+Math.max(0,1-distance/.71)*.3+size*.15;
     };
     candidates.sort((a,b)=>focus(b)-focus(a));
     const primary=candidates[0]||null;
     // Do not let irrelevant objects in the background hide a valid detected target.
     const relevantBlockers=blocked.filter(item=>!primary||
-      (intersection(item.box,primary.box)/Math.max(1,primary.box.w*primary.box.h)>.65
+      (intersection(item.box,primary.pixelBox)/Math.max(1,primary.pixelBox.w*primary.pixelBox.h)>.65
        &&item.score>primary.score+.08));
     return {
       blocked:relevantBlockers.length>0,
