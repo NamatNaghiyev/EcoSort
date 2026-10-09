@@ -11,6 +11,8 @@
 <script src="{{ url_for('static', filename='suite-core.js') }}" defer></script>
 <script src="{{ url_for('static', filename='suite.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='mvp.css') }}">
+<script src="{{ url_for('static', filename='camera-guard-core.js') }}" defer></script>
+<script src="{{ url_for('static', filename='camera-guard.js') }}" defer></script>
 <script src="{{ url_for('static', filename='mvp.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
 </head>
@@ -75,9 +77,11 @@
     <section class="panel camera-panel" aria-labelledby="camera-heading">
       <div class="panel-heading"><h2 id="camera-heading">Kamera girişi</h2><span id="camera-status" class="status-tag" role="status">Kamera bağlıdır</span></div>
       <div class="camera-stage"><video id="robot-video" autoplay muted playsinline aria-label="Canlı kamera görüntüsü"></video>
+        <div id="camera-roi-layer" class="camera-roi-layer" hidden aria-label="Obyekt seçimi üçün kamera sahəsi"><div id="camera-roi-box" class="camera-roi-box" hidden></div></div>
         <div id="camera-placeholder" class="camera-placeholder"><span class="camera-reticle" aria-hidden="true">＋</span><strong>Canlı görüntü gözlənilir</strong><span>Kamera qoşulduqdan sonra kadr analizi mümkündür</span></div></div>
-      <div class="camera-toolbar"><button class="button" id="start-camera">Kameranı aç</button><button class="button primary" id="capture-frame" disabled>Kadrı analiz et →</button><button class="button" id="stop-camera" disabled>Dayandır</button></div>
-      <div class="camera-help">HTTPS və ya localhost tələb olunur. «Kadrı analiz et» düyməsi basıldıqda 3 ayrı kadr götürülür və onların nəticələri müqayisə edilir. Nəticələr uyğun gəlmədikdə operator yoxlaması tələb olunur. Video serverə ötürülmür.</div>
+      <div class="camera-toolbar"><button class="button" id="start-camera">Kameranı aç</button><button class="button" id="select-camera-object" disabled>Obyekti seç</button><button class="button" id="clear-camera-object" disabled>Seçimi sil</button><button class="button primary" id="capture-frame" disabled>Kadrı analiz et →</button><button class="button" id="stop-camera" disabled>Dayandır</button></div>
+      <div id="camera-screening" class="camera-help" role="status">Kameranı açdıqdan sonra obyektin üzərində düzbucaqlı çəkə bilərsiniz. Sistem tullantı olmayan obyektləri ayrıca yoxlayır.</div>
+      <div class="camera-help">Telefon, kompüter və insan kimi tanınan obyektlər üçün yoxlama tələb edilir. Hazır detektor ilk dəfə açılarkən internetdən yüklənir; əlçatan olmadıqda avtomatik təsnifat aparılmır. Üç kadr serverdə yoxlanır, video axını göndərilmir. Naməlum obyektlərin hamısını aşkarlamağa zəmanət yoxdur.</div>
       <p id="camera-error" class="error" role="alert" hidden></p>
     </section>
     <section class="panel decision-panel" aria-labelledby="decision-heading">
