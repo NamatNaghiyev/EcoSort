@@ -31,6 +31,63 @@ Avtomatik demo marşrutu üçün etibar ≥75% və ilk iki nəticə fərqi ≥15
 
 İki qarşılıqlı barmaq üçün hər barmağın normal qüvvəsi `N = m*g*S/(2*mu)`, təxmini qol momenti `tau = m*g*l*S`. Konveyerdə 1 m məsafəyə çatma vaxtı `t = 1/v`. Sürüşmə ssenarisində sürtünmə 40% azalır və qüvvə yenidən hesablanır; limit aşılırsa animasiya dayanır. **Sensor bağlantısı, real robot əmri, dinamik yük və əzilmə modeli yoxdur.** Animasiya sürətləndirilib.
 
+## Daha etibarlı kamera analizi
+
+"Robot & kamera" bölməsində "Kadrı analiz et" düyməsi ardıcıl **üç kadrı**
+(qısa fasilə ilə) `POST /api/predict-burst` ünvanına göndərir. Server hamısını
+bir model çağırışında analiz edir. Üç kadrın proqnozu fərqli olduqda,
+kadrların hər hansı birinin etibarı 55%-dən aşağı olduqda, orta etibar
+75%-dən aşağı olduqda və ya ilk iki sinfin fərqi 15 faiz bəndindən az olduqda
+**operator yoxlaması** tələb olunur. Bu sərhədlər eksperimental, kalibrasiya
+olunmamış qaydalardır; kameraya aid doğruluq artımı hələ ölçülməyib.
+Yaxın zamanlı kadrlar bir-birindən asılıdır və hamısı birlikdə səhv edə bilər.
+Video tam şəkildə serverə göndərilmir və fiziki robot əmri verilmir.
+Tək-şəkil API-si əvvəlki kimi `POST /api/predict` ünvanında qalır.
+
+## Təmiz datasetlə namizəd model təlimi (istehsal modelinə toxunmur)
+
+Təlimə başlamazdan əvvəl **etiket konflikti və identik dublikatları** audit edin:
+
+```bash
+python tools/prepare_clean_dataset.py --source raw_dataset --output dataset_clean
+# reports/clean_split_plan.json sənədində konfliktləri yoxlayın.
+python tools/prepare_clean_dataset.py --source raw_dataset --output dataset_clean --write
+```
+
+Alət hər sinfi `train / val / test` olaraq ayrı bölür, identik şəkilləri
+yalnız bir dəfə istifadə edir, müxtəlif etiketli eyni şəkilləri **quarantinə**
+alır; orijinal fayllara toxunmur. `--write` yeni `dataset_clean`
+qovluğunu yalnız mövcud olmadıqda yaradır. Təhlükəsizlik üçün təkrar
+işə salmada yazmanı rədd edir. Yaxın dublikatlar və eyni kamera sessiyasından
+olan kadrlar hələ də əl ilə qruplaşdırılmalıdır.
+
+Namizəd modeli ayrıca qovluqda təlim edin:
+
+```bash
+python -m pip install -r requirements-training.txt
+# Linux/macOS:
+ECOSORT_DATASET_ROOT=dataset_clean python train.py
+# Windows PowerShell:
+# $env:ECOSORT_DATASET_ROOT="dataset_clean"; python train.py
+```
+
+Yeni çəkilər `models/candidates/` altında saxlanılır; aktiv
+`models/best_weights.weights.h5` avtomatik dəyişmir. Namizəd modeli
+**əvvəllər görülməmiş real kamera sessiyaları** ilə ayrıca qiymətləndirin:
+
+```bash
+# Linux/macOS:
+ECOSORT_WEIGHTS_PATH=models/candidates/best_weights.weights.h5 \
+ECOSORT_CLASS_NAMES_PATH=models/candidates/class_names.json \
+python tools/evaluate_model.py --dataset camera_holdout/test --output reports/camera_candidate.json
+```
+
+PowerShell-də bu iki dəyişəni `$env:ECOSORT_WEIGHTS_PATH` və
+`$env:ECOSORT_CLASS_NAMES_PATH` şəklində təyin edin.
+Eyni holdout setində aktiv modelin nəticəsi ilə müqayisə edin. Yalnız
+qiymətləndirmədə aydın üstünlük olarsa istehsal modelini **ayrıca**
+yeniləyin. Bu repoda yeni model çəkiləri hələ öyrədilməyib.
+
 ## Audit və qiymətləndirmə
 
 Bu komandalar şəkilləri silmir və kateqoriyaları dəyişmir:
