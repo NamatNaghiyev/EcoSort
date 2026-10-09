@@ -149,8 +149,8 @@ iframe[title*="3D"]{background:#0c1512}
 
 
 /* Light EcoSort theme: retain existing layout, restore neutral surfaces. */
-:root{color-scheme:light;--bg:#f5f6f3;--white:#fff;--ink:#26342d;--muted:#68776e;--line:#dce3dc;--green:#286846;--soft:#eef4ee}
-body{background:var(--bg);color:var(--ink)}
+:root{color-scheme:light;--bg:#ffffff;--white:#fff;--ink:#26342d;--muted:#68776e;--line:#dce3dc;--green:#286846;--soft:#eef4ee}
+body{background:#ffffff;color:var(--ink)}
 .sidebar{background:transparent}
 .brand-mark{color:#286846;border-color:#286846}.brand-dot,.heading-accent{color:#286846}
 .nav{color:#52645a}.nav>span:first-child{color:#6b8674}
@@ -208,5 +208,5 @@ th{background:#f0f5ef;color:#46614d}
 .map-legend i{border-color:#fff;box-shadow:0 0 0 1px #bcc9bf}
 footer{color:#708174}footer>span:first-child{color:#3b5844}
 .skip-link{background:#286846;color:#fff}
-iframe[title*="3D"]{background:#f5f6f3}
+iframe[title*="3D"]{background:#ffffff}
 #robot-canvas{background:#fafbf8}
