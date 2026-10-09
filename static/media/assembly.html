@@ -8,7 +8,11 @@ canvas{display:block;width:100%;height:420px;touch-action:none;cursor:grab}canva
 button{border:1px solid #415648;background:#131e19;color:#eef3ee;padding:8px 12px;border-radius:6px;cursor:pointer}
 button:focus-visible,canvas:focus-visible{outline:2px solid #65d6af;outline-offset:-3px}
 #status{margin-right:auto}small{display:block;padding:0 16px 12px;background:#131e19;color:#9fac9f}
-@media(max-width:600px){canvas{height:340px}}\n:fullscreen{background:#0c1512;display:flex;flex-direction:column}\n:fullscreen canvas{height:auto;flex:1;min-height:0}\n:fullscreen .bar{flex:0 0 auto}\n:fullscreen small{flex:0 0 auto}
+@media(max-width:600px){canvas{height:340px}}
+:fullscreen{background:#0c1512;display:flex;flex-direction:column}
+:fullscreen canvas{height:auto;flex:1;min-height:0}
+:fullscreen .bar{flex:0 0 auto}
+:fullscreen small{flex:0 0 auto}
 </style></head><body>
 <canvas id="scene" tabindex="0" aria-label="EcoSort konveyeri və ReflexGrip-in interaktiv 3D modeli. Ox düymələri ilə fırladın, artı və mənfi ilə yaxınlaşdırın."></canvas>
 <div class="bar"><span id="status" role="status">3D model yüklənir…</span><button id="zoom-in" aria-label="Yaxınlaşdır">＋</button><button id="zoom-out" aria-label="Uzaqlaşdır">−</button><button id="reset">Görünüşü sıfırla</button><button id="fullscreen" type="button" aria-label="3D modeli tam ekranda göstər">Tam ekran ⛶</button></div>
