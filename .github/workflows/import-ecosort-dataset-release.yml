@@ -1,0 +1,119 @@
+name: Import EcoSort dataset release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  import-dataset:
+    # Only the specific user-provided bundle is accepted.
+    if: github.event.release.tag_name == 'ecosort-datasets-2026-10-09'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out current EcoSort
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download and verify attached dataset bundle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ecosort-download"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "EcoSort_Dataset_Additions_2026-10-09.zip" \
+            --dir "$RUNNER_TEMP/ecosort-download"
+          printf '%s  %s\n' \
+            "e30a0ae21b89b6e63bf679a897b3261a13324a035cad0af7e9b07c42fd29580b" \
+            "$RUNNER_TEMP/ecosort-download/EcoSort_Dataset_Additions_2026-10-09.zip" \
+            | sha256sum --check
+
+      - name: Unpack validated incoming data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import pathlib
+          import zipfile
+          src = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ecosort-download" / "EcoSort_Dataset_Additions_2026-10-09.zip"
+          dest = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ecosort-stage"
+          with zipfile.ZipFile(src) as archive:
+              infos = archive.infolist()
+              if len(infos) > 3000 or sum(info.file_size for info in infos) > 600_000_000:
+                  raise ValueError("Unexpected dataset archive size")
+              for info in infos:
+                  name = pathlib.PurePosixPath(info.filename)
+                  if name.is_absolute() or ".." in name.parts or "\\" in info.filename:
+                      raise ValueError(f"Unsafe ZIP member: {info.filename}")
+              archive.extractall(dest)
+          required = [dest / "tools" / "import_hackathon_datasets.py"] + [
+              dest / "dataset_additions" / label
+              for label in ("glass", "metal", "organic", "paper", "plastic")
+          ]
+          for path in required:
+              if not path.exists():
+                  raise FileNotFoundError(path)
+          PY
+
+      - name: Import without deleting or changing original categories
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install Pillow
+          python "$RUNNER_TEMP/ecosort-stage/tools/import_hackathon_datasets.py" \
+            --incoming "$RUNNER_TEMP/ecosort-stage/dataset_additions" \
+            --dataset dataset \
+            --classes models/class_names.json \
+            --report reports/dataset_additions_import.json \
+            --apply
+
+      - name: Stage new training data and audit
+        id: stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add dataset/train reports/dataset_additions_import.json
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push additive dataset branch and open review PR
+        if: steps.stage.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="datasets/2026-10-09-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -m "Add validated waste images to train; preserve existing splits"
+          git push --set-upstream origin "$branch"
+          if ! gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --head "$branch" \
+            --base main \
+            --title "Add EcoSort waste images (preserve all original data)" \
+            --body "New images only in dataset/train/{glass,metal,organic,paper,plastic}. Original train/val/test images, model weights and class_names.json remain unchanged. Review reports/dataset_additions_import.json; retraining is NOT part of this PR."; then
+            echo "::warning::Branch was pushed, but this repo may disallow PR creation by Actions. Open a PR from branch $branch manually."
+          fi
