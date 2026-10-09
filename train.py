@@ -17,15 +17,21 @@ BATCH_SIZE    = 32
 EPOCHS_FROZEN = 15   # Phase 1: base model dondurulmuş
 EPOCHS_FINETUNE = 10 # Phase 2: fine-tuning
 
-TRAIN_DIR = "dataset/train"
-VAL_DIR   = "dataset/val"
-TEST_DIR  = "dataset/test"
+# By default retain the historical training layout. Clean-dataset training
+# writes to candidates/ so it cannot silently replace the deployed model.
+DATASET_ROOT = os.environ.get("ECOSORT_DATASET_ROOT", "dataset")
+OUTPUT_ROOT = os.environ.get("ECOSORT_TRAIN_OUTPUT_DIR",
+                             "models/candidates" if DATASET_ROOT != "dataset" else "models")
+TRAIN_DIR = os.path.join(DATASET_ROOT, "train")
+VAL_DIR   = os.path.join(DATASET_ROOT, "val")
+TEST_DIR  = os.path.join(DATASET_ROOT, "test")
 
-WEIGHTS_SAVE_PATH    = "models/best_weights.weights.h5"
-FULL_MODEL_SAVE_PATH = "models/best_model.keras"
-CLASS_NAMES_PATH     = "models/class_names.json"
+WEIGHTS_SAVE_PATH    = os.path.join(OUTPUT_ROOT, "best_weights.weights.h5")
+FULL_MODEL_SAVE_PATH = os.path.join(OUTPUT_ROOT, "best_model.keras")
+CLASS_NAMES_PATH     = os.path.join(OUTPUT_ROOT, "class_names.json")
 
-os.makedirs("models", exist_ok=True)
+os.makedirs(OUTPUT_ROOT, exist_ok=True)
+tf.keras.utils.set_random_seed(42)
 
 # Dataset yüklənməsi
 
@@ -253,9 +259,9 @@ for ax, train_data, val_data, title, ylabel in [
     ax.grid(alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("models/training_history.png", dpi=150)
+plt.savefig(os.path.join(OUTPUT_ROOT, "training_history.png"), dpi=150)
 plt.show()
-print("✅ Qrafik saxlanıldı: models/training_history.png")
+print(f"✅ Qrafik saxlanıldı: {OUTPUT_ROOT}/training_history.png")
 
 
 # Test qiymətləndirməsi
@@ -290,6 +296,6 @@ plt.title("Confusion Matrix")
 plt.ylabel("Həqiqi sinif")
 plt.xlabel("Proqnoz sinif")
 plt.tight_layout()
-plt.savefig("models/confusion_matrix.png", dpi=150)
+plt.savefig(os.path.join(OUTPUT_ROOT, "confusion_matrix.png"), dpi=150)
 plt.show()
-print("✅ Confusion matrix saxlanıldı: models/confusion_matrix.png")
+print(f"✅ Confusion matrix saxlanıldı: {OUTPUT_ROOT}/confusion_matrix.png")
