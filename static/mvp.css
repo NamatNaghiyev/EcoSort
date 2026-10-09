@@ -6,3 +6,9 @@
 @media(max-width:1100px){.mvp-columns{grid-template-columns:1fr}.routing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.routing-grid>div:nth-child(2){border:0}.routing-grid>div:nth-child(-n+2){border-bottom:1px solid var(--line)}.robot-steps>div{padding:13px}.robot-steps strong{font-size:12px}}
 @media(max-width:780px){.robot-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.robot-steps>div:nth-child(2){border:0}.robot-steps>div:nth-child(-n+2){border-bottom:1px solid var(--line)}#azerbaijan-map{height:420px}.map-counter{margin-left:0;width:100%}.camera-toolbar .button{flex:1}.routing-grid>div{padding:14px}.mvp-notice{font-size:11px}}
 @media(max-width:420px){.robot-steps strong{font-size:11px}.camera-toolbar{padding:12px}.camera-toolbar .button{font-size:11px;padding:9px 10px}.decision-body{padding:14px}.routing-grid{grid-template-columns:1fr}.routing-grid>div{border-right:0!important;border-bottom:1px solid var(--line)}.routing-grid>div:last-child{border:0}}
+
+/* Camera selection overlay: functional, deliberately unobtrusive. */
+.camera-roi-layer{position:absolute;inset:0;z-index:3;cursor:crosshair;touch-action:none;background:transparent}
+.camera-roi-box{position:absolute;pointer-events:none;border:2px solid #a5e4bd;background:rgba(58,128,83,.09);box-shadow:0 0 0 9999px rgba(10,15,13,.13)}
+#camera-screening{color:var(--ink);padding-bottom:7px}
+@media(max-width:780px){.camera-toolbar{gap:6px}.camera-toolbar #select-camera-object,.camera-toolbar #clear-camera-object{flex:1 1 42%}}
