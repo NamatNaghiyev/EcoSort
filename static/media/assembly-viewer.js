@@ -76,6 +76,19 @@
     document.getElementById('zoom-in').onclick=()=>zoom(.85);
     document.getElementById('zoom-out').onclick=()=>zoom(1/.85);
     document.getElementById('reset').onclick=()=>{yaw=-.85;pitch=.65;distance=3.4;draw();};
+    const fullscreenButton=document.getElementById('fullscreen');
+    fullscreenButton.onclick=async()=>{
+      try{
+        if(document.fullscreenElement) await document.exitFullscreen();
+        else await document.body.requestFullscreen();
+      }catch(_error){
+        status.textContent='Tam ekran rejimi brauzer tərəfindən məhdudlaşdırılıb.';
+      }
+    };
+    document.addEventListener('fullscreenchange',()=>{
+      fullscreenButton.textContent=document.fullscreenElement?'Tam ekrandan çıx ⛶':'Tam ekran ⛶';
+      requestAnimationFrame(draw);
+    });
     new ResizeObserver(draw).observe(canvas);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)draw();});
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();status.textContent='3D bağlantısı kəsildi. Səhifəni yeniləyin.';});
