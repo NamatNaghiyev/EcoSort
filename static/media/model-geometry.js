@@ -28,6 +28,26 @@
     if (!output.every(Number.isFinite)) throw new Error('Modeldə etibarsız koordinat var');
     return output;
   }
+  function projectTriangles(data, yaw, pitch, distance, width, height) {
+    const dot=(a,b)=>a.reduce((s,n,i)=>s+n*b[i],0);
+    const z=[Math.cos(pitch)*Math.cos(yaw),Math.cos(pitch)*Math.sin(yaw),Math.sin(pitch)];
+    const x=[-Math.sin(yaw),Math.cos(yaw),0];
+    const y=[-Math.sin(pitch)*Math.cos(yaw),-Math.sin(pitch)*Math.sin(yaw),Math.cos(pitch)];
+    const f=height/(2*Math.tan(Math.PI/8)), faces=[];
+    for(let i=0;i<data.length;i+=27) {
+      const points=[],depths=[];
+      for(let k=0;k<3;k++){
+        const vertex=Array.from(data.slice(i+k*9,i+k*9+3)),depth=distance-dot(vertex,z);
+        depths.push(depth);points.push([width/2+f*dot(vertex,x)/depth,height/2-f*dot(vertex,y)/depth]);
+      }
+      if(depths.some(d=>d<.05)) continue;
+      const normal=Array.from(data.slice(i+3,i+6)),light=.45+.55*Math.abs(dot(normal,[-.3114,-.5449,.7785]));
+      const color=Array.from(data.slice(i+6,i+9)).map(n=>Math.round(n*light*255));
+      faces.push({points,depth:depths.reduce((a,b)=>a+b,0)/3,color});
+    }
+    return faces.sort((a,b)=>b.depth-a.depth);
+  }
   root.parseOBJ = parseOBJ;
-  if (typeof module !== 'undefined') module.exports = {parseOBJ};
+  root.projectTriangles = projectTriangles;
+  if (typeof module !== 'undefined') module.exports = {parseOBJ,projectTriangles};
 })(typeof window !== 'undefined' ? window : globalThis);

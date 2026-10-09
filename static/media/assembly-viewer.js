@@ -3,13 +3,16 @@
   const canvas=document.getElementById('scene'), status=document.getElementById('status');
   try {
     const gl=canvas.getContext('webgl',{antialias:true,alpha:false});
-    if (!gl) throw new Error('Brauzer 3D görünüşü dəstəkləmir');
+    const ctx=gl ? null : canvas.getContext('2d');
+    if (!gl && !ctx) throw new Error('Brauzer model görünüşünü dəstəkləmir');
+    let program,pLoc,vLoc;
     function shader(type, source) {
       const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
       if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error('3D görünüş hazırlana bilmədi');
       return s;
     }
-    const program=gl.createProgram();
+    if(gl) {
+    program=gl.createProgram();
     gl.attachShader(program,shader(gl.VERTEX_SHADER,`
       attribute vec3 position;attribute vec3 normal;attribute vec3 color;
       uniform mat4 projection;uniform mat4 view;varying vec3 vColor;varying vec3 vNormal;
@@ -22,13 +25,16 @@
     gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS)) throw new Error('3D görünüş hazırlana bilmədi');
     gl.useProgram(program);
+    }
     const response=await fetch('EcoSort_Assembly.obj');
     if(!response.ok) throw new Error('Model faylı yüklənmədi');
     const data=new Float32Array(parseOBJ(await response.text()));
+    if(gl) {
     const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
     ['position','normal','color'].forEach((name,i)=>{const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,36,i*12);});
     gl.enable(gl.DEPTH_TEST);gl.clearColor(.955,.962,.945,1);
-    const pLoc=gl.getUniformLocation(program,'projection'),vLoc=gl.getUniformLocation(program,'view');
+    pLoc=gl.getUniformLocation(program,'projection');vLoc=gl.getUniformLocation(program,'view');
+    }
     let yaw=-.85,pitch=.65,distance=3.4;
     const sub=(a,b)=>a.map((n,i)=>n-b[i]),dot=(a,b)=>a.reduce((s,n,i)=>s+n*b[i],0);
     const norm=a=>{const l=Math.hypot(...a);return a.map(n=>n/l);};
@@ -36,6 +42,15 @@
     function draw() {
       const rect=canvas.getBoundingClientRect();if(!rect.width || !rect.height) return;
       const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
+      if(ctx) {
+        ctx.fillStyle='#f4f5f1';ctx.fillRect(0,0,canvas.width,canvas.height);
+        for(const face of projectTriangles(data,yaw,pitch,distance,canvas.width,canvas.height)) {
+          ctx.beginPath();ctx.moveTo(...face.points[0]);ctx.lineTo(...face.points[1]);ctx.lineTo(...face.points[2]);ctx.closePath();
+          ctx.fillStyle='rgb('+face.color.join(',')+')';ctx.fill();
+          ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=.35;ctx.stroke();
+        }
+        return;
+      }
       gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
       const f=1/Math.tan(Math.PI/8),a=canvas.width/canvas.height,n=.05,far=30;
       gl.uniformMatrix4fv(pLoc,false,new Float32Array([f/a,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0]));

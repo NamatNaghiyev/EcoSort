@@ -1,6 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+test('software 3D projection draws centered geometry with finite screen coordinates', () => {
+  const {parseOBJ, projectTriangles} = require('./static/media/model-geometry.js');
+  assert.equal(typeof projectTriangles, 'function');
+  const mesh = parseOBJ('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3');
+  const faces = projectTriangles(mesh, -.85, .65, 3.4, 800, 420);
+  assert.equal(faces.length, 1);
+  assert.ok(faces[0].points.flat().every(Number.isFinite));
+  assert.ok(faces[0].points.every(([x,y]) => x > 0 && x < 800 && y > 0 && y < 420));
+  assert.ok(faces[0].depth > 0);
+});
 test('OBJ polygon faces become finite triangles with unit normals and material colors', () => {
   assert.ok(fs.existsSync('static/media/model-geometry.js'), 'OBJ geometry parser is missing');
   const {parseOBJ} = require('./static/media/model-geometry.js');
