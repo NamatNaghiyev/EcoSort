@@ -229,26 +229,22 @@
       const needsManual=!candidate;
       setSceneMessage(candidate?('Obyekt seçildi: '+candidate+'. Material modeli işləyir…'):
         'Detektor obyekti tanımadı. Material modelinin təklifi ayrıca göstəriləcək.');
-      const form=new FormData();
-      for(let i=0;i<3;i++){
-        if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
-        const canvas=snapshotCanvas(roi);
-        const blob=await new Promise((resolve,reject)=>
-          canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.87));
-        form.append('frames',blob,'camera-frame-'+(i+1)+'.jpg');
-        if(i===1){
-          $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.75);
-          $('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
-        }
-        if(i<2)await new Promise(resolve=>setTimeout(resolve,180));
-      }
+      // One focused image is enough for the material model. Requiring three
+      // unanimous frames hid useful predictions and made live demos sluggish.
       if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
-      const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),150000);
-      const response=await fetch('/api/predict-burst',{method:'POST',body:form,signal:controller.signal});
+      const canvas=snapshotCanvas(roi);
+      const blob=await new Promise((resolve,reject)=>
+        canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.90));
+      $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.78);
+      $('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
+      const form=new FormData();form.append('image',blob,'camera-frame.jpg');
+      const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),90000);
+      const response=await fetch('/api/predict',{method:'POST',body:form,signal:controller.signal});
       const data=await response.json().catch(()=>({error:'Server JSON cavabı vermədi.'}));
       if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
       if(!response.ok||data.error)throw Error(data.error||'Analiz serveri cavab vermədi ('+response.status+').');
-      if(typeof data.label!=='string'||data.frames_analyzed!==3)throw Error('Kamera analizinin cavabı düzgün deyil.');
+      if(typeof data.label!=='string'||!names[data.label])throw Error('Kamera analizinin cavabı düzgün deyil.');
+      data.accepted=data.low_confidence!==true&&data.robot_plan?.code!=='MANUAL_REVIEW';
       const materialMatches=candidate&&allowedMaterials[candidate]?.includes(data.suggested_label||data.label);
       if(needsManual||!materialMatches){
         const predicted=data.suggested_label||data.label;
