@@ -406,6 +406,55 @@
   "Bölgələr silindi.": "Regions cleared.",
   "Əl ilə bölgə": "Manual region"
 };
+  Object.assign(translations, {
+  "Azərbaycan dili": "Azerbaijani",
+  "Kamera bağlıdır.": "Camera is off.",
+  "Brauzer kamera API-sini dəstəkləmir. HTTPS/localhost istifadə edin.": "Browser does not support the camera API. Use HTTPS or localhost.",
+  "Qoşulur…": "Connecting…",
+  "Canlı kamera": "Live camera",
+  "Kamera qoşuldu. Video lokal görüntülənir.": "Camera connected. Video is displayed locally.",
+  "Kamera aktivdir. Obyekt avtomatik axtarılır…": "Camera active. Looking for objects automatically…",
+  "Obyekti kameranın mərkəzinə gətirin. Seçim avtomatik aparılır.": "Move the object toward the center. Selection is automatic.",
+  "Avtomatik detektor yüklənmədi. “Analiz et” ilə material modelini ayrıca yoxlaya bilərsiniz.": "Automatic detector failed to load. You can check the material model separately using “Analyze”.",
+  "Detektor yoxdur. “Analiz et” ilə modelin təklifini görə bilərsiniz.": "Detector unavailable. Use “Analyze” to view the model suggestion.",
+  "Kamera icazəsi verilmədi. Brauzer ayarlarından icazə verin.": "Camera permission denied. Allow camera access in your browser settings.",
+  "Kamera açıla bilmədi. Başqa proqram kameranı istifadə edə bilər.": "Could not open camera. Another application may be using it.",
+  "Kamera dayandırıldı.": "Camera stopped.",
+  "Naməlum / uyğun olmayan obyekt": "Unknown / unsupported object",
+  "Kamera yoxlaması:": "Camera screening:",
+  "Naməlum kateqoriya": "Unknown category",
+  "Modelin təsdiqlənməmiş təklifi": "Unverified model suggestion",
+  "Ferromaqnit sensor yoxlaması": "Ferromagnetic sensor check",
+  "Konveyerdən keçid": "Conveyor pass-through",
+  "ReflexGrip: koordinat gözlənilir": "ReflexGrip: waiting for coordinates",
+  "Təhlükəsiz əl ilə ayırma": "Safe manual sorting",
+  "Modelin qaytardığı ehtimallar": "Model probabilities",
+  "Analiz edilir…": "Analyzing…",
+  "Kamera görüntüsü hazır deyil.": "Camera video is not ready.",
+  "Avtomatik seçildi:": "Automatically selected:",
+  "Obyekt seçildi:": "Object selected:",
+  "Kamera dayandırıldı; analiz ləğv edildi.": "Camera stopped; analysis canceled.",
+  "Kadrlar analiz edilir…": "Analyzing frames…",
+  "İstənilən şəhəri küçə səviyyəsinə (12+) yaxınlaşdıraraq OSM nöqtələrini sorğulayın.": "Zoom to street level (12+) in any city to fetch OSM markers.",
+  " OSM qeydi · ": " OSM records · ",
+  " lokal pilot qeydi": " local pilot marker",
+  " OSM xəritə qeydi tapıldı. Bu qeydlərin faktiki mövcudluğu yoxlanılmayıb.": " OSM map records found. Their actual existence has not been verified.",
+  "Tamamlandı · ": "Completed · ",
+  "Metal olmayan": "Nonmetal",
+  "Model nəticəsi": "Model result",
+  "Model təklifi": "Model suggestion",
+  "Operator düzəlişi:": "Operator correction:",
+  "Operator kateqoriyası:": "Operator category:",
+  "Parametr dəyişdi; simulyasiya yenidən quruldu.": "Parameter changed; simulation was reset.",
+  "Seçilmiş analiz hazırdır.": "Selected analysis is ready.",
+  "Qüvvə artırılır → yenidən tutma": "Force increased → regrip",
+  "Ssenaridə təxmini emissiya artımı": "Estimated increase in scenario emissions",
+  "Analiz dayandırıldı. Tamamlanan nəticələr saxlanıb.": "Analysis stopped. Completed results were saved.",
+  "Kamera açıqdır. Yalnız «Analiz et» zamanı kadrlar göndərilir.": "Camera open. Frames are sent only when “Analyze” is clicked.",
+  "Seçilmiş filtrlərə uyğun analiz tapılmadı.": "No analyses match the selected filters.",
+  "Şəkil qəbul edilmədi. Başqa şəkillə sınayın.": "Image rejected. Try another image.",
+  "Brauzer yaddaşını oxumaq mümkün olmadı. Analiz işləyir, tarixçə isə bu sessiya ilə məhdudlaşa bilər.": "Could not access browser storage. Analysis works, but history may be limited to this session."
+});
   const KEY='ecosort-ui-language';
   const valid=['az','en'];
   let language='az';
@@ -449,7 +498,7 @@
     if(Object.prototype.hasOwnProperty.call(translations,body))return match[1]+translations[body]+match[3];
     // Dynamic strings may contain counts, categories, and user-entered values.
     let result=body;
-    const sorted=Object.keys(translations).filter(x=>x.length>=9).sort((a,b)=>b.length-a.length);
+    const sorted=Object.keys(translations).filter(x=>x.length>=9 || ['Plastik','Metal','Şüşə','Kağız','Üzvi','Naməlum','Analiz','Şəkil'].includes(x)).sort((a,b)=>b.length-a.length);
     for(const az of sorted) {
       if(!result.includes(az))continue;
       const pattern=new RegExp('(?<![\\p{L}\\p{N}])'+esc(az)+'(?![\\p{L}\\p{N}])','gu');
