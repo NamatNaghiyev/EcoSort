@@ -44,3 +44,29 @@ test('ROI must be valid and inside the picture',()=>{
   assert.throws(()=>core.screen([],0,100));
   assert.throws(()=>core.screen(null,100,100));
 });
+
+test('two waste objects select one primary automatically',()=>{
+  const scene=core.screen([
+    box('bottle',.88,65,35,80,95),
+    box('cup',.80,4,4,28,30)
+  ],200,160);
+  assert.equal(scene.primary_target.label,'bottle');
+  assert.deepEqual(scene.detected_waste_candidates,['bottle','cup']);
+  assert.ok(scene.suggested_box.w>0);
+});
+test('background phone does not cancel a selected recyclable object',()=>{
+  const scene=core.screen([
+    box('bottle',.90,48,28,75,95),
+    box('cell phone',.98,168,115,24,30)
+  ],200,160);
+  assert.equal(scene.blocked,false);
+  assert.equal(scene.primary_target.label,'bottle');
+});
+test('overlapping dominant non-waste object still triggers review',()=>{
+  const scene=core.screen([
+    box('bottle',.72,40,25,85,95),
+    box('cell phone',.95,42,27,83,92)
+  ],200,160);
+  assert.equal(scene.blocked,true);
+  assert.equal(scene.blocking_objects[0].label,'cell phone');
+});
