@@ -5,3 +5,5 @@ output = source / "public" / "static"
 output.mkdir(parents=True, exist_ok=True)
 for name in ("style.css", "workspace.js", "suite.css", "suite-core.js", "suite.js", "mvp.css", "mvp.js"):
     shutil.copy2(source / "static" / name, output / name)
+
+shutil.copytree(source / "static" / "media", output / "media", dirs_exist_ok=True)

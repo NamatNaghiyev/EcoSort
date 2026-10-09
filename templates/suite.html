@@ -15,6 +15,11 @@
 </section>
 <section id="video-view" class="view" hidden>
  <div class="page-heading"><div><p class="eyebrow">ARDICIL KADRLAR VƏ OBYEKTLƏR</p><h1>Video və bölgə analizi</h1><p>Videodan seçilmiş kadrlar və şəkildə əl ilə işarələnmiş obyektlər təsnif edilir.</p></div><span class="quiet-tag">Avtomatik obyekt detektoru yoxdur</span></div>
+ <section class="panel concept-panel" aria-labelledby="concept-heading">
+  <div class="panel-heading"><h2 id="concept-heading">ReflexGrip — konsept videosu</h2><span class="status-tag">AI ilə yaradılmış nümayiş</span></div>
+  <div class="panel-body"><video class="concept-video" controls playsinline preload="metadata" aria-label="ReflexGrip-in nəzərdə tutulan iş prinsipini göstərən konsept videosu"><source src="{{ url_for('static', filename='media/reflexgrip-concept.mp4') }}" type="video/mp4">Brauzeriniz videonu dəstəkləmir. <a href="{{ url_for('static', filename='media/reflexgrip-concept.mp4') }}">Videonu açın</a>.</video>
+  <p class="notice">ReflexGrip-in nəzərdə tutulan iş prinsipi. Bu video AI ilə yaradılmış konsept nümayişidir; fiziki prototip hazırlanma mərhələsindədir. Görüntülər real cihaz sınağı və ya modelin dəqiqliyinin sübutu deyil.</p></div>
+ </section>
  <div class="panel"><div class="tabs" role="group" aria-label="Analiz rejimi"><button class="button primary" id="tab-video">Video / kamera</button><button class="button" id="tab-crops">Bir neçə obyekt</button></div>
  <div id="video-tools" class="panel-body"><div class="toolbar"><label class="file-button button">Video seç<input id="video-file" type="file" accept="video/*" hidden></label><button class="button" id="camera-start">Canlı kameranı aç</button><button class="button" id="camera-stop" disabled>Kameranı bağla</button></div>
  <video id="video-preview" controls playsinline muted preload="metadata"></video>
