@@ -150,3 +150,14 @@ iframe[title*="3D"]{background:#0c1512}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* Contextual explanations for the four sorting stages. */
+.robot-steps{overflow:visible}
+.robot-step-info{position:relative;cursor:help;outline-offset:-3px}
+.robot-step-info:focus-visible{outline:2px solid #8ce7c6;z-index:6}
+.step-info-icon{position:absolute;right:15px;top:18px;font-size:15px;color:#91b8a0;opacity:.85}
+.robot-step-tooltip{position:absolute;z-index:10;top:calc(100% + 9px);left:12px;width:max-content;max-width:min(300px,calc(100vw - 44px));padding:13px 15px;background:#24372b;color:#eff7f0;border:1px solid #61866b;border-radius:6px;box-shadow:0 10px 24px #0007;font-size:12px;line-height:1.65;font-weight:400;letter-spacing:0;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .15s ease}
+.robot-step-info:nth-child(n+3) .robot-step-tooltip{left:auto;right:12px}
+.robot-step-info:hover,.robot-step-info:focus,.robot-step-info:focus-within{z-index:12}
+.robot-step-info:hover .robot-step-tooltip,.robot-step-info:focus .robot-step-tooltip,.robot-step-info:focus-within .robot-step-tooltip{visibility:visible;opacity:1}
+@media(max-width:780px){.robot-step-info:nth-child(even) .robot-step-tooltip{left:auto;right:8px}.robot-step-info:nth-child(odd) .robot-step-tooltip{left:8px;right:auto}.step-info-icon{top:12px;right:10px}}
