@@ -18,7 +18,7 @@
 <a class="skip-link" href="#main">Məzmuna keç</a>
 <aside class="sidebar">
 <a class="brand" href="/" aria-label="EcoSort ana səhifə"><span class="brand-mark" aria-hidden="true">E</span>EcoSort<span class="brand-dot">.</span></a>
-<p class="eyebrow nav-label">ÇEŞİDLƏMƏ TEXNOLOGİYASI</p>
+
 <nav aria-label="Əsas menyu">
 <button class="nav" data-view="analysis"><span aria-hidden="true">⊞</span>Yeni analiz</button>
 <button class="nav active" data-view="robot" aria-current="page"><span aria-hidden="true">◉</span> Robot &amp; kamera</button>
@@ -30,13 +30,13 @@
 <button class="nav" data-view="quality"><span aria-hidden="true">✓</span>Test hesabatı</button>
 <button class="nav" data-view="impact"><span aria-hidden="true">♲</span>Karbon təsiri</button>
 </nav>
-<div class="sidebar-bottom"><span class="small-symbol" aria-hidden="true">♲</span><strong>Daha düzgün çeşidləmə.</strong><p>Hər analiz bir başlanğıcdır.</p><span class="version">ECOSORT / İŞ SAHƏSİ</span></div>
+
 </aside>
 <div class="app-shell">
-<header class="topbar"><div>İş sahəsi <span class="separator">/</span> <strong id="breadcrumb">Robot &amp; kamera</strong></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></header>
+<header class="topbar"><div><strong id="breadcrumb">Robot &amp; kamera</strong></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></header>
 <main id="main" tabindex="-1">
 <section id="analysis-view" class="view" hidden>
-<div class="page-heading"><div><p class="eyebrow">TULLANTILARIN TƏSNİFATI</p><h1>Hər materialın <span class="heading-accent">öz yolu var.</span></h1><p>Şəkli yükləyin, kateqoriyanı və çeşidləmə tövsiyəsini öyrənin.</p></div><span class="quiet-tag">Şəkil analizi</span></div>
+<div class="page-heading"><div><h1>Şəkil analizi</h1><p>Şəkli yükləyin, kateqoriyanı və çeşidləmə tövsiyəsini öyrənin.</p></div></div>
 <div class="workspace">
 <section class="panel upload-panel" aria-labelledby="upload-heading">
 <div class="panel-heading"><h2 id="upload-heading"><span class="step">01</span> Şəkil yükləmə</h2><span class="muted">JPG, PNG, WebP</span></div>
@@ -61,12 +61,12 @@
 <div id="result-content" class="result-content" hidden></div>
 </section>
 </div>
-<div class="below-workspace"><span>ⓘ Bu model şəkil üçün bir əsas kateqoriya müəyyən edir.</span><button class="text-button" data-view="history">Analiz tarixçəsinə bax <span aria-hidden="true">↗</span></button></div>
+<div class="below-workspace"><span>Model hər şəkil üçün bir kateqoriya qaytarır.</span><button class="text-button" data-view="history">Analiz tarixçəsinə bax <span aria-hidden="true">↗</span></button></div>
 <div class="category-strip"><span class="eyebrow">MODELİN KATEQORİYALARI</span><div id="category-list"></div></div>
 </section>
 <section id="robot-view" class="view">
-  <div class="page-heading"><div><p class="eyebrow">ECOSORT × REFLEXGRIP</p>
-    <h1>Gör. Tanı. <span class="heading-accent">Çeşidlə.</span></h1>
+  <div class="page-heading"><div>
+    <h1>Robot və kamera</h1>
     <p>Canlı kamera kadrından AI təsnifatı və ReflexGrip üçün təhlükəsiz marşrut planı.</p></div>
     <span class="quiet-tag">MVP · aparat komandaları söndürülüb</span></div>
   <div class="mvp-notice" role="note"><strong>Demo rejimi:</strong> Kamera realdır, model serverdə kadrı analiz edir. Robot üçün çıxarılan plan yalnız simulyasiyadır — kalibrlənməmiş koordinat və fiziki komanda göndərilmir.</div>
@@ -92,7 +92,7 @@
   <section class="panel event-panel"><div class="panel-heading"><h2>Bu sessiyanın əməliyyat jurnalı</h2><span class="muted">Yalnız brauzer yaddaşında</span></div><ol id="robot-events" class="robot-events"><li>Görüntü analizi başladılmayıb.</li></ol></section>
 </section>
 <section id="map-view" class="view" hidden>
-  <div class="page-heading"><div><p class="eyebrow">AZƏRBAYCAN / MƏKAN MƏLUMATLARI</p><h1>Tullantı konteynerlərinin xəritəsi</h1>
+  <div class="page-heading"><div><h1>Tullantı konteynerlərinin xəritəsi</h1>
     <p>OpenStreetMap qeydiyyatları və yerli pilot müşahidələr — mənbələr aydın şəkildə ayrılır.</p></div><span class="quiet-tag">OSM məlumatı · tam əhatə deyil</span></div>
   <div class="mvp-notice" role="note"><strong>Məlumatın etibarlılığı:</strong> OSM nöqtələri real xəritə qeydləridir, lakin yerlərdə yenidən yoxlanmalıdır. Hər küçənin və qəsəbənin əhatə olunmasına zəmanət yoxdur. Əl ilə əlavə etdiyiniz nöqtələr yalnız bu brauzerdə saxlanır və təsdiqlənmiş sayılmır.</div>
   <div class="map-controls"><label>Nöqtə növü <select id="map-filter"><option value="all">Bütün növlər</option><option value="waste_disposal">Böyük konteynerlər</option><option value="waste_basket">Küçə zibil qabları</option><option value="recycling">Təkrar emal</option></select></label>
@@ -105,8 +105,8 @@
   <div class="map-legend"><span><i class="legend-osm"></i> OSM qeydi (yerində yoxlanmayıb)</span><span><i class="legend-local"></i> Pilot istifadəçi qeydi (təsdiqsiz)</span></div>
   <p class="map-source">Məlumat: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · Overpass API. Nöqtə yerləşməsi və mövcudluğu bələdiyyə məlumatı deyil.</p>
 </section>
-<section id="history-view" class="view" hidden><div class="page-heading"><div><p class="eyebrow">SAXLANMIŞ NƏTİCƏLƏR</p><h1>Analiz tarixçəsi</h1><p>Bu brauzerdə saxlanmış son 50 analiz. Operator düzəlişləri modelə avtomatik təlim vermir. Digər cihazlarla sinxronlaşmır.</p></div></div><div class="panel"><div class="history-export"><button class="button" id="history-json">JSON yüklə</button><button class="button" id="history-csv">CSV yüklə</button><span class="muted-copy">İlkin proqnoz və operator düzəlişi birlikdə saxlanır.</span></div><div class="filters"><label>Kateqoriya<select id="category-filter"><option value="">Hamısı</option></select></label><label>Başlanğıc tarixi<input id="date-from" type="date"></label><label>Son tarix<input id="date-to" type="date"></label><button class="button" id="reset-filters">Filtrləri sıfırla</button></div><div id="history-empty" class="table-empty">Hələ analiz yoxdur. İlk şəklinizi analiz edərək başlayın.</div><div class="table-scroll" id="history-table-wrap" hidden><table><caption class="sr-only">Saxlanmış analizlər</caption><thead><tr><th>Şəkil</th><th>Kateqoriya</th><th>Modelin etibarı</th><th>Tarix və saat</th><th>Nəticə / operator yoxlaması</th></tr></thead><tbody id="history-body"></tbody></table></div></div></section>
-<section id="stats-view" class="view" hidden><div class="page-heading"><div><p class="eyebrow">ANALİZ İCMALI</p><h1>Statistika</h1><p>Yalnız bu brauzerdə saxlanmış analizlər əsasında hesablanır.</p></div></div><div class="panel stats-panel"><div class="panel-heading"><h2>Kateqoriyalar üzrə bölgü</h2><span id="stats-total">0 analiz</span></div><div id="stats-empty" class="table-empty">Diaqram üçün hələ məlumat yoxdur. İlk analizinizi tamamlayın.</div><div id="chart" class="chart" hidden role="img" aria-label="Kateqoriyalar üzrə analiz sayı"></div></div></section>
+<section id="history-view" class="view" hidden><div class="page-heading"><div><h1>Analiz tarixçəsi</h1><p>Bu brauzerdə saxlanmış son 50 analiz. Operator düzəlişləri modelə avtomatik təlim vermir. Digər cihazlarla sinxronlaşmır.</p></div></div><div class="panel"><div class="history-export"><button class="button" id="history-json">JSON yüklə</button><button class="button" id="history-csv">CSV yüklə</button><span class="muted-copy">İlkin proqnoz və operator düzəlişi birlikdə saxlanır.</span></div><div class="filters"><label>Kateqoriya<select id="category-filter"><option value="">Hamısı</option></select></label><label>Başlanğıc tarixi<input id="date-from" type="date"></label><label>Son tarix<input id="date-to" type="date"></label><button class="button" id="reset-filters">Filtrləri sıfırla</button></div><div id="history-empty" class="table-empty">Hələ analiz yoxdur. İlk şəklinizi analiz edərək başlayın.</div><div class="table-scroll" id="history-table-wrap" hidden><table><caption class="sr-only">Saxlanmış analizlər</caption><thead><tr><th>Şəkil</th><th>Kateqoriya</th><th>Modelin etibarı</th><th>Tarix və saat</th><th>Nəticə / operator yoxlaması</th></tr></thead><tbody id="history-body"></tbody></table></div></div></section>
+<section id="stats-view" class="view" hidden><div class="page-heading"><div><h1>Statistika</h1><p>Yalnız bu brauzerdə saxlanmış analizlər əsasında hesablanır.</p></div></div><div class="panel stats-panel"><div class="panel-heading"><h2>Kateqoriyalar üzrə bölgü</h2><span id="stats-total">0 analiz</span></div><div id="stats-empty" class="table-empty">Diaqram üçün hələ məlumat yoxdur. İlk analizinizi tamamlayın.</div><div id="chart" class="chart" hidden role="img" aria-label="Kateqoriyalar üzrə analiz sayı"></div></div></section>
 {% include 'suite.html' %}
 <p id="storage-note" class="error" role="status" hidden></p>
 <footer><span>EcoSort</span><span>Etibar göstəricisi nəticənin düzgünlük zəmanəti deyil.</span></footer>
