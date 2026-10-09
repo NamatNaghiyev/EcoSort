@@ -8,7 +8,7 @@ function setup(){
  w.HTMLCanvasElement.prototype.getContext=()=>context;w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,AA==';w.HTMLCanvasElement.prototype.toBlob=function(callback){callback(new w.Blob(['frame'],{type:'image/jpeg'}));};
  w.HTMLMediaElement.prototype.load=function(){};w.document.getElementById('video-preview').srcObject=null;w.HTMLMediaElement.prototype.pause=function(){};w.HTMLMediaElement.prototype.play=async function(){};w.HTMLAnchorElement.prototype.click=function(){};
  w.fetch=async()=>({ok:true,json:async()=>({label:'plastic',confidence:92,top_results:[{label:'plastic',confidence:92},{label:'glass',confidence:5},{label:'paper',confidence:3}],model_version:'test'})});
- for(const name of ['suite-core.js','workspace.js','suite.js'])w.eval(fs.readFileSync('static/'+name,'utf8'));
+ for(const name of ['suite-core.js','workspace.js','suite.js','mvp.js'])w.eval(fs.readFileSync('static/'+name,'utf8'));
  return {dom,w,$:id=>w.document.getElementById(id),commands};
 }
 test('pending camera stream is stopped when user navigates before permission resolves',async()=>{
@@ -27,4 +27,8 @@ test('human correction reaches media card, robot and export evidence',async()=>{
 });
 test('history CSV includes original top result evidence',async()=>{
  const {dom,w,$,commands}=setup();w.EcoSortWorkspace.saveRecord({id:'test',label:'glass',confidence:70,top_results:[{label:'glass',confidence:70},{label:'plastic',confidence:20}],createdAt:new Date().toISOString(),thumbnail:'data:image/jpeg;base64,AA=='});w.EcoSortWorkspace.correct('test','paper');$('history-csv').onclick();const reader=new w.FileReader();const text=await new Promise(resolve=>{reader.onload=()=>resolve(reader.result);reader.readAsText(commands.at(-1));});assert.match(text,/top_results/);assert.match(text,/plastic/);assert.match(text,/70/);dom.window.close();
+});
+
+test('robot camera permission cannot activate camera after navigation',async()=>{
+ const {dom,w,$}=setup();let resolve,stopped=0;Object.defineProperty(w.navigator,'mediaDevices',{value:{getUserMedia:()=>new Promise(r=>resolve=r)}});$('start-camera').click();w.EcoSortWorkspace.navigate('impact');resolve({getTracks:()=>[{stop:()=>stopped++}],getVideoTracks:()=>[]});await flush();assert.equal(stopped,1);assert.equal($('robot-video').srcObject,null);dom.window.close();
 });

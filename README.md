@@ -54,3 +54,9 @@ python build_static.py
 ```
 
 API: `GET /api/health`, `POST /api/predict` (`image` multipart), `GET /api/quality`. Inference ilk sorğuda modeli yükləyir; soyuq başlanğıc normal sorğudan uzun ola bilər. Brauzer tarixçəsi və operator düzəlişləri cihazlar arasında sinxronlaşmır.
+
+## Canlı robot kamerası və Azərbaycan xəritəsi
+
+Robot kamera iş sahəsi kadrı server modelinə göndərir, təhlükəsiz marşrut planını göstərir; fiziki aparat komandası göndərilmir. Azərbaycan xəritəsi OpenStreetMap/Overpass qeydlərini küçə səviyyəsində yükləyir. Yerli pilot nöqtələri yalnız brauzerdə saxlanır və təsdiqlənmiş sayılmır.
+
+`GET /api/robot/status` simulyasiya vəziyyətini; `GET /api/containers?bbox=south,west,north,east` kiçik ərazi üçün OSM qeydlərini qaytarır. Mənbə əlçatmaz olduqda saxta nöqtə göstərilmir.
