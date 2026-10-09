@@ -55,7 +55,7 @@
   function renderResult(data){
     currentResult=data;document.dispatchEvent(new CustomEvent('ecosort:prediction',{detail:data}));
     const root=$('result-content');root.replaceChildren();root.hidden=false;$('result-empty').hidden=true;$('result-status').textContent='Tamamlandı';
-    const info=category(data.label),head=element('div','result-category');head.append(element('span','category-icon',info.icon));const title=element('div');title.append(element('p','eyebrow','MÜƏYYƏN EDİLƏN KATEQORİYA'),element('h3','',info.name));head.append(title);root.append(head);
+    const info=category(data.label),head=element('div','result-category');head.append(element('span','category-icon',info.icon));const title=element('div');title.append(element('p','eyebrow',data.review_reason?'MODEL TƏKLİFİ — YOXLANMALIDIR':'MÜƏYYƏN EDİLƏN KATEQORİYA'),element('h3','',info.name));head.append(title);root.append(head);
     const c=confidence(data.confidence);
     if(c!==null){const row=element('div','confidence-row');row.append(element('span','','Modelin etibar göstəricisi'),element('strong','',percent(c)));const meter=element('div','meter'),fill=element('div','meter-fill');fill.style.width=`${c}%`;meter.append(fill);root.append(row,meter,element('p','confidence-note','Bu göstərici nəticənin düzgünlük zəmanəti deyil.'));if(c<75)root.append(element('p','warning','Nəticə qeyri-müəyyəndir. Obyekti daha yaxın, aydın fonda çəkin və yenidən yoxlayın.'));}
     if(data.review_reason)root.append(element('p','warning',data.review_reason));
@@ -95,10 +95,10 @@
     if(!ctx)throw Error('Şəklin analizi üçün canvas hazırlana bilmədi.');
     ctx.drawImage(img,0,0);
     const scan=await window.EcoSortCameraGuard.inspect(canvas);
-    const candidate=scan.detected_waste_candidates.length===1?scan.detected_waste_candidates[0]:null;
+    const candidate=scan.primary_target?.label||(scan.detected_waste_candidates.length===1?scan.detected_waste_candidates[0]:null);
     let processed=null;
     if(candidate&&scan.suggested_box){
-      const b=scan.suggested_box,margin=.08;
+      const b=scan.suggested_box,margin=.16;
       const x=Math.max(0,b.x-b.w*margin),y=Math.max(0,b.y-b.h*margin);
       const right=Math.min(1,b.x+b.w*(1+margin)),bottom=Math.min(1,b.y+b.h*(1+margin));
       const c=document.createElement('canvas');
@@ -120,9 +120,9 @@
       try{
         screening=await inspectUpload();
       }catch(error){
-        renderResult(manualResult('Obyekt detektoru əlçatan deyil. Təhlükəsizlik üçün şəkil tullantı kimi təsdiqlənmədi.'));
-        $('status').textContent='Operator yoxlaması';
-        return;
+        // Do not suppress the waste classifier just because the optional COCO
+        // object detector or its CDN fails. Keep routing manual in that case.
+        screening={scan:{blocked:false},candidate:null,processed:null,detectorFailed:true};
       }
       if(screening.scan.blocked){
         renderResult(manualResult(screening.scan.message));
@@ -148,13 +148,17 @@
       let data=await response.json();
       if(!data||typeof data.label!=='string'||!data.label.trim()||data.error)
         throw Error('Server etibarlı analiz nəticəsi qaytarmadı.');
-      if(!screening.candidate){
-        data=manualResult('Obyekt detektoru dəstəklənən tullantı obyekti tapa bilmədi. Nəticə yalnız model təklifidir.',data);
-      }else if(!objectClasses[screening.candidate]?.includes(data.label)){
-        data=manualResult('Detektorun gördüyü obyekt ilə modelin material sinfi uyğun gəlmir.',data);
+      if(!screening.candidate||!objectClasses[screening.candidate]?.includes(data.label)){
+        const reason=!screening.candidate?
+          'Obyekt detektoru bu materialı tanımadı; modelin kateqoriya təklifi görünür, lakin təsdiqlənməyib.':
+          'Detektorun gördüyü obyekt ilə modelin material proqnozu uyğun gəlmir.';
+        data.suggested_label=data.label;
+        data.review_reason=reason;data.low_confidence=true;data.accepted=false;
+        data.decision={action:'review',destination:'Operator yoxlaması',reason,
+          hardware_connected:false};
       }
       renderResult(data);
-      $('status').textContent=data.label==='unknown'?'Operator yoxlaması':'İlkin təsnifat';
+      $('status').textContent=data.review_reason?'Model təklifi — yoxlanmalıdır':'İlkin təsnifat';
       const img=$('preview-img'),canvas=document.createElement('canvas');
       const scale=Math.min(1,160/Math.max(img.naturalWidth,img.naturalHeight));
       canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
