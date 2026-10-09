@@ -49,7 +49,7 @@
   }
   function rasterize(faces,width,height) {
     const pixels=new Uint8ClampedArray(width*height*4),buffer=new Float32Array(width*height);
-    for(let i=0;i<pixels.length;i+=4){pixels[i]=244;pixels[i+1]=245;pixels[i+2]=241;pixels[i+3]=255;}
+    for(let i=0;i<pixels.length;i+=4){pixels[i]=12;pixels[i+1]=21;pixels[i+2]=17;pixels[i+3]=255;}
     for(const face of faces) {
       const [[ax,ay],[bx,by],[cx,cy]]=face.points;
       const den=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);

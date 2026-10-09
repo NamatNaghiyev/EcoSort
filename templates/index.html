@@ -12,12 +12,13 @@
 <script src="{{ url_for('static', filename='suite.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='mvp.css') }}">
 <script src="{{ url_for('static', filename='mvp.js') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
 </head>
 <body>
 <a class="skip-link" href="#main">Məzmuna keç</a>
 <aside class="sidebar">
-<a class="brand" href="/" aria-label="EcoSort ana səhifə"><span class="brand-mark" aria-hidden="true">↗</span>EcoSort<span class="brand-dot">.</span></a>
-<p class="eyebrow nav-label">HACKATHON / MVP</p>
+<a class="brand" href="/" aria-label="EcoSort ana səhifə"><span class="brand-mark" aria-hidden="true">E</span>EcoSort<span class="brand-dot">.</span></a>
+<p class="eyebrow nav-label">ÇEŞİDLƏMƏ TEXNOLOGİYASI</p>
 <nav aria-label="Əsas menyu">
 <button class="nav" data-view="analysis"><span aria-hidden="true">⊞</span>Yeni analiz</button>
 <button class="nav active" data-view="robot" aria-current="page"><span aria-hidden="true">◉</span> Robot &amp; kamera</button>
@@ -35,7 +36,7 @@
 <header class="topbar"><div>İş sahəsi <span class="separator">/</span> <strong id="breadcrumb">Robot &amp; kamera</strong></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></header>
 <main id="main" tabindex="-1">
 <section id="analysis-view" class="view" hidden>
-<div class="page-heading"><div><p class="eyebrow">TULLANTILARIN TƏSNİFATI</p><h1>Şəkildən material təsnifatına.</h1><p>Şəkli yükləyin, kateqoriyanı və çeşidləmə tövsiyəsini öyrənin.</p></div><span class="quiet-tag">Şəkil analizi</span></div>
+<div class="page-heading"><div><p class="eyebrow">TULLANTILARIN TƏSNİFATI</p><h1>Hər materialın <span class="heading-accent">öz yolu var.</span></h1><p>Şəkli yükləyin, kateqoriyanı və çeşidləmə tövsiyəsini öyrənin.</p></div><span class="quiet-tag">Şəkil analizi</span></div>
 <div class="workspace">
 <section class="panel upload-panel" aria-labelledby="upload-heading">
 <div class="panel-heading"><h2 id="upload-heading"><span class="step">01</span> Şəkil yükləmə</h2><span class="muted">JPG, PNG, WebP</span></div>
@@ -64,8 +65,8 @@
 <div class="category-strip"><span class="eyebrow">MODELİN KATEQORİYALARI</span><div id="category-list"></div></div>
 </section>
 <section id="robot-view" class="view">
-  <div class="page-heading"><div><p class="eyebrow">ECOSORT / VISION → DECISION → ACTUATION</p>
-    <h1>Robotik çeşidləmə idarəetməsi</h1>
+  <div class="page-heading"><div><p class="eyebrow">ECOSORT × REFLEXGRIP</p>
+    <h1>Gör. Tanı. <span class="heading-accent">Çeşidlə.</span></h1>
     <p>Canlı kamera kadrından AI təsnifatı və ReflexGrip üçün təhlükəsiz marşrut planı.</p></div>
     <span class="quiet-tag">MVP · aparat komandaları söndürülüb</span></div>
   <div class="mvp-notice" role="note"><strong>Demo rejimi:</strong> Kamera realdır, model serverdə kadrı analiz edir. Robot üçün çıxarılan plan yalnız simulyasiyadır — kalibrlənməmiş koordinat və fiziki komanda göndərilmir.</div>
