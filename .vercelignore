@@ -17,3 +17,10 @@ package.json
 package-lock.json
 requirements-dev.txt
 docs/
+
+# Never bundle local model-training datasets or candidate checkpoints
+dataset_clean/
+camera_holdout/
+models/candidates/
+reports/clean_split_plan.json
+reports/camera_candidate.json
