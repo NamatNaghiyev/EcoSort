@@ -10,28 +10,22 @@
   };
   const node = (tag, cls, content) => {const el=document.createElement(tag);if(cls)el.className=cls;if(content!==undefined)el.textContent=content;return el;};
   let mediaStream=null, running=false, cameraPending=false, cameraEpoch=0;
-  let objectSelection=null, selecting=false, dragStart=null;
+  let objectSelection=null, autoScanTimer=null, autoScanBusy=false;
+  let stableTarget=null, stableFrames=0, autoCaptured=false, detectorReady=false;
   const video=$('robot-video'), result=$('robot-decision');
   const selectionLayer=$('camera-roi-layer'), selectionBox=$('camera-roi-box');
   const sceneMessage=$('camera-screening');
   function setSceneMessage(message){sceneMessage.textContent=message;}
   function bound(value){return Math.max(0,Math.min(1,value));}
   function videoGeometry(){
-    const bounds=$('robot-video').getBoundingClientRect();
-    const w=video.videoWidth,h=video.videoHeight;
+    const bounds=video.getBoundingClientRect(),w=video.videoWidth,h=video.videoHeight;
     if(!w||!h||!bounds.width||!bounds.height)return null;
     const scale=Math.min(bounds.width/w,bounds.height/h);
-    return {bounds,x:(bounds.width-w*scale)/2,y:(bounds.height-h*scale)/2,
-      w:w*scale,h:h*scale};
-  }
-  function cameraPoint(event){
-    const g=videoGeometry();if(!g)return null;
-    return {x:bound((event.clientX-g.bounds.left-g.x)/g.w),
-      y:bound((event.clientY-g.bounds.top-g.y)/g.h)};
+    return {bounds,x:(bounds.width-w*scale)/2,y:(bounds.height-h*scale)/2,w:w*scale,h:h*scale};
   }
   function drawSelection(){
     const g=videoGeometry(),r=objectSelection;
-    selectionBox.hidden=!r||!g;
+    selectionLayer.hidden=!r||!g;selectionBox.hidden=!r||!g;
     if(!r||!g)return;
     const pw=g.bounds.width,ph=g.bounds.height;
     selectionBox.style.left=(g.x+r.x*g.w)/pw*100+'%';
@@ -39,48 +33,9 @@
     selectionBox.style.width=r.w*g.w/pw*100+'%';
     selectionBox.style.height=r.h*g.h/ph*100+'%';
   }
-  function setSelection(roi){
-    objectSelection=roi;drawSelection();cameraButtons();
-  }
-  function resetSelection(){
-    selecting=false;dragStart=null;selectionLayer.hidden=true;
-    setSelection(null);$('select-camera-object').textContent='Obyekti seç';
-  }
-  selectionLayer.addEventListener('pointerdown',event=>{
-    if(!mediaStream||running)return;
-    dragStart=cameraPoint(event);selecting=true;
-    selectionLayer.setPointerCapture(event.pointerId);
-  });
-  selectionLayer.addEventListener('pointermove',event=>{
-    if(!selecting||!dragStart)return;
-    const now=cameraPoint(event);if(!now)return;
-    const x=Math.min(dragStart.x,now.x),y=Math.min(dragStart.y,now.y);
-    objectSelection={x,y,w:Math.abs(now.x-dragStart.x),h:Math.abs(now.y-dragStart.y)};
-    drawSelection();
-  });
-  selectionLayer.addEventListener('pointerup',event=>{
-    if(!selecting)return;selecting=false;dragStart=null;
-    if(!objectSelection||objectSelection.w<0.12||objectSelection.h<0.12){
-      setSelection(null);setSceneMessage('Seçilən sahə çox kiçikdir. Obyekti daha geniş çərçivəyə alın.');
-    }else{
-      setSceneMessage('Obyekt sahəsi seçildi. Kamera analizini başladın.');
-      setSelection(objectSelection);
-    }
-  });
-  selectionLayer.addEventListener('pointercancel',()=>{selecting=false;dragStart=null;drawSelection();});
+  function setSelection(roi){objectSelection=roi;drawSelection();}
+  function resetSelection(){setSelection(null);stableTarget=null;stableFrames=0;}
   window.addEventListener('resize',drawSelection);
-  $('select-camera-object').addEventListener('click',()=>{
-    if(!mediaStream||running)return;
-    selectionLayer.hidden=!selectionLayer.hidden;
-    $('select-camera-object').textContent=selectionLayer.hidden?'Obyekti seç':'Seçimi tamamla';
-    setSceneMessage(selectionLayer.hidden?
-      'Mövcud sahə saxlanıldı. Analizə başlaya bilərsiniz.':
-      'Kamera üzərində tullantının ətrafına düzbucaqlı çəkin.');
-  });
-  $('clear-camera-object').addEventListener('click',()=>{
-    resetSelection();
-    setSceneMessage('Seçim silindi. Sistem obyektin yerini avtomatik axtaracaq.');
-  });
   function log(text) {
     const list=$('robot-events');
     if(list.children.length===1 && list.firstChild.textContent==='Görüntü analizi başladılmayıb.') list.replaceChildren();
@@ -91,8 +46,6 @@
     $('start-camera').disabled=Boolean(mediaStream)||running||cameraPending;
     $('capture-frame').disabled=!mediaStream||running;
     $('stop-camera').disabled=!mediaStream&&!cameraPending;
-    $('select-camera-object').disabled=!mediaStream||running;
-    $('clear-camera-object').disabled=!mediaStream||running||!objectSelection;
   }
   function cameraError(message) { $('camera-error').textContent=message;$('camera-error').hidden=false;$('camera-status').textContent='Xəta';log(message); }
   async function startCamera(){
@@ -108,23 +61,29 @@
       if(epoch!==cameraEpoch)return;
       video.classList.add('camera-on');$('camera-placeholder').hidden=true;
       $('camera-status').textContent='Canlı kamera';log('Kamera qoşuldu. Video lokal görüntülənir.');
-      setSceneMessage('Obyekt detektoru hazırlanır. Yalnız dəstəklənən obyekt tapıldıqda təsnifat ayrıca təsdiqlənəcək.');
+      autoCaptured=false;detectorReady=false;resetSelection();
+      setSceneMessage('Kamera aktivdir. Obyekt avtomatik axtarılır…');
       if(window.EcoSortCameraGuard){
         window.EcoSortCameraGuard.load().then(()=>{
-          if(epoch===cameraEpoch)setSceneMessage('Obyekt detektoru hazırdır. Obyekti kadra gətirin və analiz edin.');
+          if(!cameraActive(epoch))return;
+          detectorReady=true;
+          setSceneMessage('Obyekti kameranın mərkəzinə gətirin. Seçim avtomatik aparılır.');
+          autoScanTimer=setInterval(()=>scanFrame(epoch),900);
+          void scanFrame(epoch);
         }).catch(()=>{
-          if(epoch===cameraEpoch)setSceneMessage('Detektor yüklənmədi. Avtomatik təsnifat əvəzinə operator yoxlaması göstəriləcək.');
+          if(cameraActive(epoch))setSceneMessage('Avtomatik detektor yüklənmədi. “Analiz et” ilə material modelini ayrıca yoxlaya bilərsiniz.');
         });
-      }
+      }else setSceneMessage('Detektor yoxdur. “Analiz et” ilə modelin təklifini görə bilərsiniz.');
       stream.getVideoTracks().forEach(track=>track.addEventListener('ended',stopCamera,{once:true}));
     }catch(error){if(epoch!==cameraEpoch)return;if(mediaStream)stopCamera();cameraError(error?.name==='NotAllowedError'?'Kamera icazəsi verilmədi. Brauzer ayarlarından icazə verin.':'Kamera açıla bilmədi. Başqa proqram kameranı istifadə edə bilər.');}
     if(epoch===cameraEpoch){cameraPending=false;cameraButtons();}
   }
   function stopCamera(){
-    cameraEpoch++;cameraPending=false;
+    cameraEpoch++;cameraPending=false;detectorReady=false;
+    if(autoScanTimer!==null){clearInterval(autoScanTimer);autoScanTimer=null;}
     if(mediaStream){mediaStream.getTracks().forEach(track=>track.stop());mediaStream=null;}
     video.pause();video.srcObject=null;video.classList.remove('camera-on');
-    resetSelection();setSceneMessage('Kamera bağlıdır. Obyekt seçimi sıfırlandı.');
+    resetSelection();setSceneMessage('Kamera bağlıdır.');
     $('camera-placeholder').hidden=false;$('camera-status').textContent='Kamera bağlıdır';
     log('Kamera dayandırıldı.');cameraButtons();
   }
@@ -145,8 +104,9 @@
     const review = data.low_confidence === true || data.accepted === false ||
       data.robot_plan?.code === 'MANUAL_REVIEW';
     const kind = names[data.label] || 'Naməlum kateqoriya';
-    result.append(node('strong','',review?'Operator yoxlaması tələb olunur':kind),
-      node('p','',review?(data.review_reason||'Avtomatik çeşidləmə üçün etibar kifayət etmir.'):('Model sinfi: '+data.label)));
+    const proposal=names[data.suggested_label]||kind;
+    result.append(node('strong','',review?('Model təklifi: '+proposal):kind),
+      node('p','',review?(data.review_reason||'Modelin nəticəsi yoxlanmalıdır; avtomatik robot əmri verilmir.'):('Model sinfi: '+data.label)));
     if (review && data.suggested_label && names[data.suggested_label]) {
       result.append(metric('Modelin təsdiqlənməmiş təklifi',names[data.suggested_label]));
     }
@@ -202,10 +162,47 @@
   function cameraActive(epoch){
     return epoch===cameraEpoch&&Boolean(mediaStream)&&Boolean(video.videoWidth);
   }
-  async function capture(){
+  // Observe the live camera without uploading the video stream.
+  // Two successive detections of the same target are required before the
+  // first automatic material analysis; manual re-analysis remains available.
+  async function scanFrame(epoch){
+    if(!cameraActive(epoch)||autoScanBusy||running||!detectorReady)return;
+    autoScanBusy=true;
+    try{
+      const guard=window.EcoSortCameraGuard;
+      const scan=await guard.inspect(snapshotCanvas(null));
+      if(!cameraActive(epoch))return;
+      if(scan.blocked){
+        resetSelection();setSceneMessage(scan.message);return;
+      }
+      const target=scan.primary_target;
+      if(!target||!scan.suggested_box){
+        resetSelection();
+        setSceneMessage('Tanınan obyekt görünmür. Kağız və karton kimi bəzi materiallar detektorda yoxdur; kadrı model ilə analiz etmək üçün “Analiz et” seçin.');
+        return;
+      }
+      const roi=paddedBox(scan.suggested_box);
+      setSelection(roi);
+      const center={x:roi.x+roi.w/2,y:roi.y+roi.h/2};
+      const steady=stableTarget&&stableTarget.label===target.label&&
+        Math.hypot(stableTarget.x-center.x,stableTarget.y-center.y)<.14;
+      stableFrames=steady?stableFrames+1:1;
+      stableTarget={label:target.label,...center};
+      setSceneMessage('Avtomatik seçildi: '+target.label+'. '+(autoCaptured?
+        'Nəticəni yeniləmək üçün “Yenidən analiz et” düyməsini seçin.':
+        'Görüntü sabitləşdikdə analiz başlayacaq.'));
+      if(stableFrames>=2&&!autoCaptured){
+        autoCaptured=true;
+        void capture(scan,roi);
+      }
+    }catch(error){
+      if(cameraActive(epoch))setSceneMessage('Avtomatik seçim mümkün olmadı. “Analiz et” düyməsi ilə model proqnozunu yoxlayın.');
+    }finally{autoScanBusy=false;}
+  }
+  async function capture(autoScan=null,autoRoi=null){
     if(!mediaStream||running||!video.videoWidth){cameraError('Kamera görüntüsü hazır deyil.');return;}
     running=true;cameraButtons();$('camera-error').hidden=true;
-    $('decision-status').textContent='Obyekt yoxlanılır…';
+    $('decision-status').textContent='Kadrlar analiz edilir…';
     const epoch=cameraEpoch;
     let timeout;
     try{
@@ -213,43 +210,37 @@
       const fullFrame=snapshotCanvas(null);
       $('robot-snapshot').src=fullFrame.toDataURL('image/jpeg',0.75);
       $('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
-      if(!guard){
-        rejectScene('Obyekt detektoru mövcud deyil.',
-          'Telefon kimi başqa obyektləri etibarlı yoxlamaq mümkün olmadığı üçün material proqnozu verilmədi.');
-        return;
-      }
-      let scan;
-      try{
-        scan=await guard.inspect(fullFrame,objectSelection);
-      }catch(error){
-        rejectScene('Obyekt detektoru işə düşmədi.',
-          'İnternet bağlantısını yoxlayın və yenidən sınayın. Detektor əlçatan olmadıqda AI məcburi tullantı etiketi qaytarmır.');
-        setSceneMessage('Detektor işləmədi: '+(error?.message||'Bilinməyən xəta'));
-        return;
+      let scan=autoScan;
+      if(!scan&&guard){
+        try{scan=await guard.inspect(fullFrame);}
+        catch(error){
+          setSceneMessage('Detektor əlçatan deyil. Material proqnozu operator yoxlaması üçün göstəriləcək.');
+        }
       }
       if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
-      if(scan.blocked){
-        rejectScene(scan.message,'Aşkarlama yalnız məlum COCO obyektləri üçündür; yeni obyektlərin tanınmasına zəmanət deyil.');
+      if(scan?.blocked){
+        rejectScene(scan.message,'Obyekti kadra gətirərək yenidən yoxlayın.');
         setSceneMessage(scan.message);
         return;
       }
-      const candidate=scan.detected_waste_candidates?.length===1?scan.detected_waste_candidates[0]:null;
-      const roi=objectSelection||(candidate&&scan.suggested_box?paddedBox(scan.suggested_box):null);
+      const candidate=scan?.primary_target?.label||
+        (scan?.detected_waste_candidates?.length===1?scan.detected_waste_candidates[0]:null);
+      const roi=autoRoi||objectSelection||(scan?.suggested_box?paddedBox(scan.suggested_box):null);
       const needsManual=!candidate;
-      setSceneMessage(candidate?('Detektor obyekti "'+candidate+'" kimi işarələdi. Üç kadr üzrə material təsnifatı başladılır.'):
-        'Detektor dəstəklənən obyekt tapmadı. Modelin nəticəsi yalnız təklif kimi veriləcək; avtomatik çeşidləmə edilməyəcək.');
+      setSceneMessage(candidate?('Obyekt seçildi: '+candidate+'. Material modeli işləyir…'):
+        'Detektor obyekti tanımadı. Material modelinin təklifi ayrıca göstəriləcək.');
       const form=new FormData();
       for(let i=0;i<3;i++){
         if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
         const canvas=snapshotCanvas(roi);
         const blob=await new Promise((resolve,reject)=>
-          canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.84));
+          canvas.toBlob(b=>b?resolve(b):reject(Error('Kadr hazırlana bilmədi.')),'image/jpeg',0.87));
         form.append('frames',blob,'camera-frame-'+(i+1)+'.jpg');
         if(i===1){
-          $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.72);
+          $('robot-snapshot').src=canvas.toDataURL('image/jpeg',0.75);
           $('robot-snapshot').hidden=false;$('snapshot-placeholder').hidden=true;
         }
-        if(i<2)await new Promise(resolve=>setTimeout(resolve,220));
+        if(i<2)await new Promise(resolve=>setTimeout(resolve,180));
       }
       if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
       const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),150000);
@@ -258,15 +249,15 @@
       if(!cameraActive(epoch))throw Error('Kamera dayandırıldı; analiz ləğv edildi.');
       if(!response.ok||data.error)throw Error(data.error||'Analiz serveri cavab vermədi ('+response.status+').');
       if(typeof data.label!=='string'||data.frames_analyzed!==3)throw Error('Kamera analizinin cavabı düzgün deyil.');
-      const materialMatches=candidate&&allowedMaterials[candidate]?.includes(data.label);
-      const needsReview=needsManual||!materialMatches;
-      if(needsReview){
+      const materialMatches=candidate&&allowedMaterials[candidate]?.includes(data.suggested_label||data.label);
+      if(needsManual||!materialMatches){
         const predicted=data.suggested_label||data.label;
-        data.label='unknown';data.suggested_label=predicted;
+        // Keep the actual model guess visible instead of replacing it with 'unknown'.
+        data.suggested_label=predicted;
         data.accepted=false;data.low_confidence=true;
         data.review_reason=needsManual?
-          'Detektor tullantı obyektini təsdiqləmədi. Təsnifat yalnız modelin təklifidir.':
-          'Detektorun obyekt növü ilə tullantı kateqoriyası uyğun gəlmir.';
+          'Obyekt növü detektorda təsdiqlənmədi; bu, modelin ilkin material təklifidir.':
+          'Obyekt və material proqnozu bir-birini təsdiqləmir; nəticə yoxlanmalıdır.';
         data.robot_plan={code:'MANUAL_REVIEW',route:'review',reason:data.review_reason,
           mode:'simulation',hardware_command_sent:false,requires_confirmation:true,
           localization_available:false,calibrated_pick_coordinates:null};
@@ -275,10 +266,12 @@
       }
       data.screening_label=candidate;
       showDecision(data);
-      $('decision-status').textContent=data.accepted?'İlkin təsnifat — simulyasiya':'Operator yoxlaması';
+      $('decision-status').textContent=data.accepted?'İlkin təsnifat — simulyasiya':'Model təklifi — yoxlanmalıdır';
+      $('capture-frame').textContent='Yenidən analiz et →';
     }catch(error){
       $('decision-status').textContent='Analiz uğursuz';
       cameraError(error?.name==='AbortError'?'Analiz vaxtı bitdi; backend modelini yoxlayın.':error.message||'Analiz alınmadı.');
+      // User may retry without restarting the camera.
     }finally{clearTimeout(timeout);running=false;cameraButtons();}
   }
   $('start-camera').addEventListener('click',startCamera);
