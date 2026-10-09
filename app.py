@@ -4,7 +4,14 @@ os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
 os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
 import json
 import threading
+import hashlib
+from ecosort_domain import decision_for
 import warnings
+import math
+import time
+import urllib.parse
+import urllib.request
+from urllib.error import HTTPError, URLError
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -22,6 +29,7 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024
 with CLASS_NAMES_PATH.open(encoding="utf-8") as f:
     CLASS_NAMES = json.load(f)
 NUM_CLASSES = len(CLASS_NAMES)
+MODEL_VERSION = hashlib.sha256(WEIGHTS_PATH.read_bytes()).hexdigest()[:12] if WEIGHTS_PATH.is_file() else "missing"
 
 WASTE_INFO = {
     "plastic": {
@@ -113,7 +121,7 @@ def allowed_file(filename):
     return bool(filename) and "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def predict_image(image_source, top_k=3):
+def prepare_image(image_source):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -128,6 +136,11 @@ def predict_image(image_source, top_k=3):
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
         raise ValueError("Şəkil oxuna bilmədi. Düzgün şəkil faylı seçin.") from exc
     batch = np.expand_dims(np.asarray(img, dtype=np.float32), axis=0)
+    return batch
+
+
+def predict_image(image_source, top_k=3):
+    batch = prepare_image(image_source)
     # Direct inference avoids an extra tf.data threadpool for each web request.
     preds = np.asarray(get_model()(batch, training=False))[0]
     if preds.shape != (NUM_CLASSES,) or not np.all(np.isfinite(preds)):
@@ -136,6 +149,111 @@ def predict_image(image_source, top_k=3):
     return CLASS_NAMES[indices[0]], float(preds[indices[0]]), [
         {"label": CLASS_NAMES[i], "confidence": round(float(preds[i]) * 100, 2)} for i in indices
     ]
+
+
+
+# The classifier has no localisation, depth or calibrated robot geometry.
+# These are DRY-RUN routing decisions, never physical robot commands.
+def plan_robot_route(label, confidence, top_results):
+    runner_up = top_results[1]["confidence"] / 100 if len(top_results) > 1 else 0.0
+    uncertain = confidence < 0.65 or confidence - runner_up < 0.12
+    if uncertain or label not in CLASS_NAMES:
+        code, route, reason = "MANUAL_REVIEW", "review", "Model nəticəsi qeyri-müəyyəndir."
+    elif label == "organic":
+        code, route, reason = "CONVEYOR_PASS", "through", "Üzvi axın: konveyer üzərində düz davam edir."
+    elif label == "metal":
+        code, route, reason = "FERROUS_SENSOR_CHECK", "sensor", "Maqnit yalnız ferromaqnit metallar üçün işləyir; sensor təsdiqi lazımdır."
+    elif label in ("plastic", "paper"):
+        code, route, reason = "GRIPPER_COORDINATE_REQUIRED", "gripper", "ReflexGrip üçün obyekt koordinatı və kamera kalibrasiyası lazımdır."
+    else:
+        code, route, reason = "MANUAL_HANDLING", "review", "Şüşə üçün təhlükəsiz tutuş və qırılma riski yoxlanmalıdır."
+    return {
+        "code": code, "route": route, "reason": reason,
+        "mode": "simulation", "hardware_command_sent": False,
+        "requires_confirmation": True,
+        "localization_available": False,
+        "calibrated_pick_coordinates": None
+    }
+
+
+# Read-only geodata from OSM via Overpass. No fabricated/seeded container pins.
+_map_cache = {}
+_map_cache_lock = threading.Lock()
+
+@app.get("/api/containers")
+def api_containers():
+    raw = request.args.get("bbox", "")
+    try:
+        pieces = [float(v) for v in raw.split(",")]
+        if len(pieces) != 4 or not all(math.isfinite(v) for v in pieces):
+            raise ValueError()
+        south, west, north, east = pieces
+        if not (37.8 <= south < north <= 42.2 and 44.3 <= west < east <= 51.2):
+            raise ValueError()
+    except ValueError:
+        return jsonify({"error": "Azərbaycan daxilində düzgün bbox formatı verin: south,west,north,east."}), 400
+    if north - south > 0.35 or east - west > 0.35:
+        return jsonify({"error": "Konteynerləri görmək üçün xəritəni küçə/rayon səviyyəsinə yaxınlaşdırın."}), 422
+
+    key = tuple(round(v, 3) for v in pieces)
+    with _map_cache_lock:
+        hit = _map_cache.get(key)
+        if hit and time.monotonic() - hit[0] < 300:
+            return jsonify(hit[1])
+
+    query = """[out:json][timeout:12];
+    (
+      node["amenity"~"^(waste_basket|waste_disposal|recycling)$"](%s,%s,%s,%s);
+      way["amenity"~"^(waste_disposal|recycling)$"](%s,%s,%s,%s);
+    );
+    out center 350;""" % (south, west, north, east, south, west, north, east)
+    body = urllib.parse.urlencode({"data": query}).encode("utf-8")
+    req = urllib.request.Request(
+        "https://overpass.kumi.systems/api/interpreter",
+        data=body,
+        headers={"User-Agent": "EcoSortHackathonMVP/1.0 (https://github.com/NamatNaghiyev/EcoSort)",
+                 "Content-Type": "application/x-www-form-urlencoded"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=14) as response:
+            upstream = json.load(response)
+        points = []
+        for item in upstream.get("elements", []):
+            tags = item.get("tags", {})
+            centre = item.get("center") or item
+            lat, lon = centre.get("lat"), centre.get("lon")
+            kind = tags.get("amenity", "")
+            if not isinstance(lat, (float, int)) or not isinstance(lon, (float, int)):
+                continue
+            if kind not in {"waste_basket", "waste_disposal", "recycling"}:
+                continue
+            points.append({
+                "id": str(item.get("type", "node")) + "/" + str(item["id"]),
+                "lat": lat, "lon": lon, "kind": kind,
+                "name": str(tags.get("name", ""))[:90],
+                "operator": str(tags.get("operator", ""))[:90],
+                "osm_url": "https://www.openstreetmap.org/%s/%s" % (item.get("type", "node"), item["id"]),
+                "source": "OpenStreetMap", "verified_on_site": False
+            })
+        result = {"source": "OpenStreetMap / Overpass", "points": points,
+                  "count": len(points), "coverage_complete": False}
+        with _map_cache_lock:
+            if len(_map_cache) > 100:
+                _map_cache.clear()
+            _map_cache[key] = (time.monotonic(), result)
+        return jsonify(result)
+    except (URLError, HTTPError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        app.logger.warning("Overpass data unavailable: %s", exc)
+        return jsonify({"error": "OSM konteyner məlumatı müvəqqəti əlçatan deyil. Xəritə işləyir, amma nöqtələr təsdiqlənə bilmir.",
+                        "source": "OpenStreetMap / Overpass", "points": []}), 503
+
+
+@app.get("/api/robot/status")
+def robot_status():
+    return jsonify({"mode": "simulation", "connected": False,
+                    "actuation_enabled": False, "localization_available": False,
+                    "message": "ReflexGrip cihaz əlaqəsi və koordinat kalibrasiyası hələ qurulmayıb."})
 
 
 @app.get("/")
@@ -148,6 +266,17 @@ def health():
     present = WEIGHTS_PATH.is_file()
     return jsonify({"status": "ok" if present else "model_missing", "model_loaded": waste_model is not None,
                     "model_available": present, "categories": CLASS_NAMES}), 200 if present else 503
+
+
+@app.get("/api/quality")
+def quality():
+    report_path = BASE_DIR / "reports/evaluation.json"
+    if not report_path.is_file():
+        return jsonify({"status": "not_evaluated", "message": "Test hesabatı hələ yaradılmayıb."}), 503
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report["current_model_version"] = MODEL_VERSION
+    report["matches_current_model"] = report.get("model_sha256", "")[:12] == MODEL_VERSION
+    return jsonify(report)
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -167,7 +296,9 @@ def api_predict():
         info = WASTE_INFO.get(label, {})
         return jsonify({"label": label, "confidence": round(confidence * 100, 2),
                         "top_results": top_results, "low_confidence": confidence < 0.5,
-                        "description": info.get("description"), "tips": info.get("tips", [])})
+                        "description": info.get("description"), "tips": info.get("tips", []),
+                        "model_version": MODEL_VERSION, "decision": decision_for(label, round(confidence * 100, 2), top_results),
+                        "robot_plan": plan_robot_route(label, confidence, top_results)})
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception:

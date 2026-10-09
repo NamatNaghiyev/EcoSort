@@ -1,0 +1,392 @@
+{
+  "accuracy": 0.9721603563474388,
+  "macro_f1": 0.9731562371186516,
+  "sample_count": 898,
+  "classes": [
+    {
+      "label": "glass",
+      "precision": 0.9572192513368984,
+      "recall": 0.9675675675675676,
+      "f1": 0.9623655913978495,
+      "support": 185
+    },
+    {
+      "label": "metal",
+      "precision": 0.978021978021978,
+      "recall": 0.967391304347826,
+      "f1": 0.9726775956284153,
+      "support": 184
+    },
+    {
+      "label": "organic",
+      "precision": 0.975,
+      "recall": 0.9873417721518988,
+      "f1": 0.9811320754716981,
+      "support": 158
+    },
+    {
+      "label": "paper",
+      "precision": 0.9811320754716981,
+      "recall": 0.9936305732484076,
+      "f1": 0.9873417721518988,
+      "support": 157
+    },
+    {
+      "label": "plastic",
+      "precision": 0.9714285714285714,
+      "recall": 0.9532710280373832,
+      "f1": 0.9622641509433962,
+      "support": 214
+    }
+  ],
+  "confusion_matrix": [
+    [
+      179,
+      1,
+      1,
+      0,
+      4
+    ],
+    [
+      0,
+      178,
+      2,
+      2,
+      2
+    ],
+    [
+      0,
+      1,
+      156,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      156,
+      0
+    ],
+    [
+      8,
+      2,
+      0,
+      0,
+      204
+    ]
+  ],
+  "labels": [
+    "glass",
+    "metal",
+    "organic",
+    "paper",
+    "plastic"
+  ],
+  "status": "evaluated",
+  "evaluated_at": "2026-10-09T10:45:26.994284+00:00",
+  "model_sha256": "89c76de344dc916e4621f6f4ed2addddbff89f76cc98042403d37d621c628a9e",
+  "dataset_sha256": "a5fa468323931f13d3569bf6d1aa57e44b869a8109ec710013190bf27dd1a130",
+  "split": "test",
+  "dataset_path": ".qa_dataset/test",
+  "limited_per_class": null,
+  "attempted_count": 901,
+  "rejected_count": 3,
+  "rejected_examples": [
+    {
+      "path": "plastic/bouteille_plastique_195.jpg",
+      "reason": "Dəstəklənməyən şəkil formatı."
+    },
+    {
+      "path": "plastic/bouteille_plastique_378.jpg",
+      "reason": "Şəkil oxuna bilmədi. Düzgün şəkil faylı seçin."
+    },
+    {
+      "path": "plastic/bouteille_plastique_7.jpg",
+      "reason": "Dəstəklənməyən şəkil formatı."
+    }
+  ],
+  "label_audit_status": "partial_visual_review",
+  "error_examples": [
+    {
+      "path": "glass/papier_carton_110.jpg",
+      "actual": "glass",
+      "predicted": "plastic",
+      "confidence": 80.88
+    },
+    {
+      "path": "glass/papier_carton_1164.jpg",
+      "actual": "glass",
+      "predicted": "metal",
+      "confidence": 86.2
+    },
+    {
+      "path": "glass/papier_carton_120.jpeg",
+      "actual": "glass",
+      "predicted": "plastic",
+      "confidence": 96.2
+    },
+    {
+      "path": "glass/papier_carton_172.jpeg",
+      "actual": "glass",
+      "predicted": "plastic",
+      "confidence": 100.0
+    },
+    {
+      "path": "glass/papier_carton_497.jpeg",
+      "actual": "glass",
+      "predicted": "organic",
+      "confidence": 98.9
+    },
+    {
+      "path": "glass/papier_carton_6.jpg",
+      "actual": "glass",
+      "predicted": "plastic",
+      "confidence": 61.37
+    },
+    {
+      "path": "metal/metal_1111.jpg",
+      "actual": "metal",
+      "predicted": "organic",
+      "confidence": 74.6
+    },
+    {
+      "path": "metal/metal_1117.jpeg",
+      "actual": "metal",
+      "predicted": "plastic",
+      "confidence": 94.29
+    },
+    {
+      "path": "metal/metal_1172.jpg",
+      "actual": "metal",
+      "predicted": "paper",
+      "confidence": 86.55
+    },
+    {
+      "path": "metal/metal_19.jpg",
+      "actual": "metal",
+      "predicted": "organic",
+      "confidence": 71.43
+    },
+    {
+      "path": "metal/metal_333.jpg",
+      "actual": "metal",
+      "predicted": "paper",
+      "confidence": 67.44
+    },
+    {
+      "path": "metal/metal_419.jpg",
+      "actual": "metal",
+      "predicted": "plastic",
+      "confidence": 98.97
+    },
+    {
+      "path": "organic/Ordure_menagere_246.jpg",
+      "actual": "organic",
+      "predicted": "paper",
+      "confidence": 67.44
+    },
+    {
+      "path": "organic/Ordure_menagere_392.jpg",
+      "actual": "organic",
+      "predicted": "metal",
+      "confidence": 89.87
+    },
+    {
+      "path": "paper/Papier_carton_84.jpg",
+      "actual": "paper",
+      "predicted": "organic",
+      "confidence": 99.56
+    },
+    {
+      "path": "plastic/bouteille_plastique_1100.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 46.93
+    },
+    {
+      "path": "plastic/bouteille_plastique_1125.jpg",
+      "actual": "plastic",
+      "predicted": "metal",
+      "confidence": 73.93
+    },
+    {
+      "path": "plastic/bouteille_plastique_1143.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 58.36
+    },
+    {
+      "path": "plastic/bouteille_plastique_1389.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 57.08
+    },
+    {
+      "path": "plastic/bouteille_plastique_1400.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 78.96
+    },
+    {
+      "path": "plastic/bouteille_plastique_142.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 99.79
+    },
+    {
+      "path": "plastic/bouteille_plastique_444.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 99.97
+    },
+    {
+      "path": "plastic/bouteille_plastique_551.jpg",
+      "actual": "plastic",
+      "predicted": "metal",
+      "confidence": 97.12
+    },
+    {
+      "path": "plastic/bouteille_plastique_695.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 91.83
+    },
+    {
+      "path": "plastic/bouteille_plastique_917.jpg",
+      "actual": "plastic",
+      "predicted": "glass",
+      "confidence": 98.48
+    }
+  ],
+  "limitations": [
+    "Metriklər yalnız qəbul edilən şəkillər üzrədir; rədd olunan fayllar ayrıca göstərilir.",
+    "Bu metriklər mövcud etiketlərə əsaslanır; bütün etiketlər vizual təsdiqlənməyib.",
+    "Yeni konveyer şəraitində dəqiqlik ayrıca ölçülməlidir.",
+    "Softmax göstəriciləri kalibrasiya olunmayıb; bu rəqəmlər obyekt aşkarlama dəqiqliyi deyil."
+  ],
+  "dataset_audit": {
+    "counts": {
+      "test/glass": 185,
+      "test/metal": 184,
+      "test/organic": 158,
+      "test/paper": 157,
+      "test/plastic": 217,
+      "train/glass": 857,
+      "train/metal": 851,
+      "train/organic": 735,
+      "train/paper": 729,
+      "train/plastic": 1005,
+      "val/glass": 183,
+      "val/metal": 182,
+      "val/organic": 157,
+      "val/paper": 156,
+      "val/plastic": 215
+    },
+    "cross_split_duplicates": 37,
+    "duplicate_examples": [
+      [
+        "test/glass/papier_carton_219.jpg",
+        "train/glass/papier_carton_206.jpg"
+      ],
+      [
+        "test/glass/papier_carton_327.jpg",
+        "train/glass/papier_carton_1134.jpg"
+      ],
+      [
+        "test/glass/papier_carton_898.jpg",
+        "train/glass/papier_carton_217.jpg"
+      ],
+      [
+        "test/metal/metal_110.jpg",
+        "train/metal/metal_107.jpg"
+      ],
+      [
+        "test/metal/metal_333.jpg",
+        "test/organic/Ordure_menagere_246.jpg",
+        "train/paper/Papier_carton_378.jpg",
+        "train/plastic/bouteille_plastique_1260.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_1047.jpg",
+        "train/organic/Ordure_menagere_1046.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_11.jpg",
+        "train/organic/Ordure_menagere_966.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_26.jpg",
+        "val/organic/Ordure_menagere_25.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_570.jpg",
+        "train/organic/Ordure_menagere_569.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_735.jpg",
+        "val/organic/Ordure_menagere_734.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_847.jpg",
+        "train/organic/Ordure_menagere_848.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_915.jpg",
+        "train/organic/Ordure_menagere_908.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_926.jpg",
+        "train/organic/Ordure_menagere_932.jpg"
+      ],
+      [
+        "test/organic/Ordure_menagere_939.jpg",
+        "train/organic/Ordure_menagere_938.jpg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_112.jpeg",
+        "val/plastic/bouteille_plastique_111.jpeg",
+        "val/plastic/bouteille_plastique_216.jpeg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_1280.jpg",
+        "train/plastic/bouteille_plastique_1279.jpg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_1293.jpg",
+        "train/plastic/bouteille_plastique_1294.jpg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_1313.jpg",
+        "train/plastic/bouteille_plastique_1314.jpg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_147.jpeg",
+        "train/plastic/bouteille_plastique_148.jpeg"
+      ],
+      [
+        "test/plastic/bouteille_plastique_158.jpg",
+        "train/plastic/bouteille_plastique_159.jpg"
+      ]
+    ],
+    "filename_warnings": 1225,
+    "filename_examples": [
+      "test/glass/papier_carton_1003.jpg",
+      "test/glass/papier_carton_1007.jpg",
+      "test/glass/papier_carton_101.jpg",
+      "test/glass/papier_carton_1014.jpg",
+      "test/glass/papier_carton_1019.jpg",
+      "test/glass/papier_carton_1023.jpg",
+      "test/glass/papier_carton_1038.jpg",
+      "test/glass/papier_carton_1056.jpg",
+      "test/glass/papier_carton_1065.jpg",
+      "test/glass/papier_carton_1067.jpg"
+    ],
+    "label_review": "partial_visual_review",
+    "notes": [
+      "Fayl adları etiket səhvinin sübutu deyil. Baxılmış şüşə nümunələri düzgün etiketlidir.",
+      "Bütün şəkillərin məzmunu və yaxın dublikatları vizual yoxlanmayıb."
+    ],
+    "repository_commit": "effaaa6addfe3f04cf616a31ada915f7ed3f7d44"
+  }
+}

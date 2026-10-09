@@ -6,3 +6,14 @@ models/best_model.keras
 models/*.png
 .venv/
 __pycache__/
+
+.qa_dataset/
+.qa_manifest.json
+tests/
+.pytest_cache/
+core
+node_modules/
+package.json
+package-lock.json
+requirements-dev.txt
+docs/

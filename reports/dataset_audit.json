@@ -1,0 +1,124 @@
+{
+  "counts": {
+    "test/glass": 185,
+    "test/metal": 184,
+    "test/organic": 158,
+    "test/paper": 157,
+    "test/plastic": 217,
+    "train/glass": 857,
+    "train/metal": 851,
+    "train/organic": 735,
+    "train/paper": 729,
+    "train/plastic": 1005,
+    "val/glass": 183,
+    "val/metal": 182,
+    "val/organic": 157,
+    "val/paper": 156,
+    "val/plastic": 215
+  },
+  "cross_split_duplicates": 37,
+  "duplicate_examples": [
+    [
+      "test/glass/papier_carton_219.jpg",
+      "train/glass/papier_carton_206.jpg"
+    ],
+    [
+      "test/glass/papier_carton_327.jpg",
+      "train/glass/papier_carton_1134.jpg"
+    ],
+    [
+      "test/glass/papier_carton_898.jpg",
+      "train/glass/papier_carton_217.jpg"
+    ],
+    [
+      "test/metal/metal_110.jpg",
+      "train/metal/metal_107.jpg"
+    ],
+    [
+      "test/metal/metal_333.jpg",
+      "test/organic/Ordure_menagere_246.jpg",
+      "train/paper/Papier_carton_378.jpg",
+      "train/plastic/bouteille_plastique_1260.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_1047.jpg",
+      "train/organic/Ordure_menagere_1046.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_11.jpg",
+      "train/organic/Ordure_menagere_966.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_26.jpg",
+      "val/organic/Ordure_menagere_25.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_570.jpg",
+      "train/organic/Ordure_menagere_569.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_735.jpg",
+      "val/organic/Ordure_menagere_734.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_847.jpg",
+      "train/organic/Ordure_menagere_848.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_915.jpg",
+      "train/organic/Ordure_menagere_908.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_926.jpg",
+      "train/organic/Ordure_menagere_932.jpg"
+    ],
+    [
+      "test/organic/Ordure_menagere_939.jpg",
+      "train/organic/Ordure_menagere_938.jpg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_112.jpeg",
+      "val/plastic/bouteille_plastique_111.jpeg",
+      "val/plastic/bouteille_plastique_216.jpeg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_1280.jpg",
+      "train/plastic/bouteille_plastique_1279.jpg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_1293.jpg",
+      "train/plastic/bouteille_plastique_1294.jpg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_1313.jpg",
+      "train/plastic/bouteille_plastique_1314.jpg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_147.jpeg",
+      "train/plastic/bouteille_plastique_148.jpeg"
+    ],
+    [
+      "test/plastic/bouteille_plastique_158.jpg",
+      "train/plastic/bouteille_plastique_159.jpg"
+    ]
+  ],
+  "filename_warnings": 1225,
+  "filename_examples": [
+    "test/glass/papier_carton_1003.jpg",
+    "test/glass/papier_carton_1007.jpg",
+    "test/glass/papier_carton_101.jpg",
+    "test/glass/papier_carton_1014.jpg",
+    "test/glass/papier_carton_1019.jpg",
+    "test/glass/papier_carton_1023.jpg",
+    "test/glass/papier_carton_1038.jpg",
+    "test/glass/papier_carton_1056.jpg",
+    "test/glass/papier_carton_1065.jpg",
+    "test/glass/papier_carton_1067.jpg"
+  ],
+  "label_review": "partial_visual_review",
+  "notes": [
+    "Fayl adları etiket səhvinin sübutu deyil. Baxılmış şüşə nümunələri düzgün etiketlidir.",
+    "Bütün şəkillərin məzmunu və yaxın dublikatları vizual yoxlanmayıb."
+  ],
+  "repository_commit": "effaaa6addfe3f04cf616a31ada915f7ed3f7d44"
+}

@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "flask",
-  "functions": {"app.py": {"maxDuration": 300, "excludeFiles": "{dataset/**,raw_dataset/**,results/**,static/uploads/**,models/best_model.keras,models/*.png}"}}
+  "functions": {"app.py": {"maxDuration": 300, "excludeFiles": "{dataset/**,raw_dataset/**,results/**,static/uploads/**,models/best_model.keras,models/*.png,tests/**,.qa_dataset/**,.qa_manifest.json}"}}
 }
