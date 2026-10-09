@@ -20,8 +20,9 @@ from flask import Flask, render_template, request, jsonify
 from werkzeug.exceptions import RequestEntityTooLarge
 
 BASE_DIR = Path(__file__).resolve().parent
-WEIGHTS_PATH = BASE_DIR / "models/best_weights.weights.h5"
-CLASS_NAMES_PATH = BASE_DIR / "models/class_names.json"
+# Explicit opt-in paths allow candidate evaluation without replacing production weights.
+WEIGHTS_PATH = Path(os.environ.get("ECOSORT_WEIGHTS_PATH", str(BASE_DIR / "models/best_weights.weights.h5")))
+CLASS_NAMES_PATH = Path(os.environ.get("ECOSORT_CLASS_NAMES_PATH", str(BASE_DIR / "models/class_names.json")))
 IMG_SIZE = (224, 224)
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "bmp"}
 Image.MAX_IMAGE_PIXELS = 25_000_000
