@@ -5,7 +5,8 @@ os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
 import json
 import threading
 import hashlib
-from ecosort_domain import decision_for
+from ecosort_domain import decision_for, CONFIDENCE_THRESHOLD, MARGIN_THRESHOLD
+from ecosort_consensus import aggregate_frames, FRAME_COUNT
 import warnings
 import math
 import time
@@ -154,9 +155,10 @@ def predict_image(image_source, top_k=3):
 
 # The classifier has no localisation, depth or calibrated robot geometry.
 # These are DRY-RUN routing decisions, never physical robot commands.
-def plan_robot_route(label, confidence, top_results):
+def plan_robot_route(label, confidence, top_results, force_review=False):
     runner_up = top_results[1]["confidence"] / 100 if len(top_results) > 1 else 0.0
-    uncertain = confidence < 0.65 or confidence - runner_up < 0.12
+    uncertain = (force_review or confidence < CONFIDENCE_THRESHOLD / 100
+                 or confidence - runner_up < MARGIN_THRESHOLD / 100)
     if uncertain or label not in CLASS_NAMES:
         code, route, reason = "MANUAL_REVIEW", "review", "Model nəticəsi qeyri-müəyyəndir."
     elif label == "organic":
@@ -295,7 +297,8 @@ def api_predict():
         label, confidence, top_results = predict_image(file.stream)
         info = WASTE_INFO.get(label, {})
         return jsonify({"label": label, "confidence": round(confidence * 100, 2),
-                        "top_results": top_results, "low_confidence": confidence < 0.5,
+                        "top_results": top_results, "low_confidence": (confidence < CONFIDENCE_THRESHOLD / 100
+                        or (confidence - top_results[1]['confidence'] / 100) < MARGIN_THRESHOLD / 100),
                         "description": info.get("description"), "tips": info.get("tips", []),
                         "model_version": MODEL_VERSION, "decision": decision_for(label, round(confidence * 100, 2), top_results),
                         "robot_plan": plan_robot_route(label, confidence, top_results)})
@@ -304,6 +307,47 @@ def api_predict():
     except Exception:
         app.logger.exception("Image inference failed")
         return jsonify({"error": "Model analizi tamamlaya bilmədi. Bir az sonra yenidən sınayın."}), 503
+
+
+@app.post("/api/predict-burst")
+def api_predict_burst():
+    """Analyze three explicitly captured frames in one batch.
+
+    Unanimity rejects unstable classifications. Frames may be correlated;
+    this is a conservative routing gate, not a proven accuracy increase.
+    """
+    frames = request.files.getlist("frames")
+    if len(frames) != FRAME_COUNT:
+        return jsonify({"error": "Kamera analizi üçün dəqiq 3 kadr göndərilməlidir."}), 400
+    if any(not frame.filename or not allowed_file(frame.filename) for frame in frames):
+        return jsonify({"error": "Kadr formatı düzgün deyil."}), 400
+    try:
+        batch = np.concatenate([prepare_image(frame.stream) for frame in frames], axis=0)
+        scores = np.asarray(get_model()(batch, training=False))
+        if scores.shape != (FRAME_COUNT, NUM_CLASSES) or not np.all(np.isfinite(scores)):
+            raise RuntimeError("Invalid batched model output")
+        report = aggregate_frames(scores, CLASS_NAMES)
+        label, confidence = report["label"], report["confidence"]
+        top_results = report["top_results"]
+        if report["accepted"]:
+            decision = decision_for(label, confidence, top_results)
+        else:
+            decision = decision_for("unknown", 0, [])
+            decision["reason"] = report["review_reason"] or decision["reason"]
+        plan = plan_robot_route(label, confidence / 100, top_results,
+                                force_review=not report["accepted"])
+        if not report["accepted"]:
+            plan["reason"] = report["review_reason"] or plan["reason"]
+        return jsonify({**report, "low_confidence": not report["accepted"],
+                        "decision": decision, "robot_plan": plan,
+                        "model_version": MODEL_VERSION,
+                        "description": WASTE_INFO.get(label, {}).get("description"),
+                        "tips": WASTE_INFO.get(label, {}).get("tips", [])})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        app.logger.exception("Camera burst inference failed")
+        return jsonify({"error": "Kamera kadrlarının analizi tamamlanmadı."}), 503
 
 
 if __name__ == "__main__":
