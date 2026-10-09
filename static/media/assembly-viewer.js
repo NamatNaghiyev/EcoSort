@@ -41,14 +41,11 @@
     const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
     function draw() {
       const rect=canvas.getBoundingClientRect();if(!rect.width || !rect.height) return;
-      const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
+      const dpr=ctx ? Math.min(1,900/rect.width) : Math.min(devicePixelRatio||1,2);canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
       if(ctx) {
-        ctx.fillStyle='#f4f5f1';ctx.fillRect(0,0,canvas.width,canvas.height);
-        for(const face of projectTriangles(data,yaw,pitch,distance,canvas.width,canvas.height)) {
-          ctx.beginPath();ctx.moveTo(...face.points[0]);ctx.lineTo(...face.points[1]);ctx.lineTo(...face.points[2]);ctx.closePath();
-          ctx.fillStyle='rgb('+face.color.join(',')+')';ctx.fill();
-          ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=.35;ctx.stroke();
-        }
+        const faces=projectTriangles(data,yaw,pitch,distance,canvas.width,canvas.height);
+        const frame=ctx.createImageData(canvas.width,canvas.height);
+        frame.data.set(rasterize(faces,canvas.width,canvas.height));ctx.putImageData(frame,0,0);
         return;
       }
       gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);

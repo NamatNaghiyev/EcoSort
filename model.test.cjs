@@ -1,6 +1,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+test('software renderer resolves overlapping surfaces by per-pixel depth', () => {
+  const {rasterize} = require('./static/media/model-geometry.js');
+  assert.equal(typeof rasterize,'function');
+  const points=[[0,0],[9,0],[0,9]];
+  const pixels=rasterize([
+    {points,depths:[2,2,2],color:[255,0,0]},
+    {points,depths:[1,9,9],color:[0,255,0]}
+  ],10,10);
+  assert.deepEqual(Array.from(pixels.slice((1*10+1)*4,(1*10+1)*4+3)),[0,255,0]);
+  assert.deepEqual(Array.from(pixels.slice((1*10+6)*4,(1*10+6)*4+3)),[255,0,0]);
+});
 test('software 3D projection draws centered geometry with finite screen coordinates', () => {
   const {parseOBJ, projectTriangles} = require('./static/media/model-geometry.js');
   assert.equal(typeof projectTriangles, 'function');

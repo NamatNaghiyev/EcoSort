@@ -43,11 +43,34 @@
       if(depths.some(d=>d<.05)) continue;
       const normal=Array.from(data.slice(i+3,i+6)),light=.45+.55*Math.abs(dot(normal,[-.3114,-.5449,.7785]));
       const color=Array.from(data.slice(i+6,i+9)).map(n=>Math.round(n*light*255));
-      faces.push({points,depth:depths.reduce((a,b)=>a+b,0)/3,color});
+      faces.push({points,depths,depth:depths.reduce((a,b)=>a+b,0)/3,color});
     }
     return faces.sort((a,b)=>b.depth-a.depth);
   }
+  function rasterize(faces,width,height) {
+    const pixels=new Uint8ClampedArray(width*height*4),buffer=new Float32Array(width*height);
+    for(let i=0;i<pixels.length;i+=4){pixels[i]=244;pixels[i+1]=245;pixels[i+2]=241;pixels[i+3]=255;}
+    for(const face of faces) {
+      const [[ax,ay],[bx,by],[cx,cy]]=face.points;
+      const den=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+      if(Math.abs(den)<1e-8)continue;
+      const x0=Math.max(0,Math.floor(Math.min(ax,bx,cx))),x1=Math.min(width-1,Math.ceil(Math.max(ax,bx,cx)));
+      const y0=Math.max(0,Math.floor(Math.min(ay,by,cy))),y1=Math.min(height-1,Math.ceil(Math.max(ay,by,cy)));
+      const inv=face.depths.map(d=>1/d);
+      for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) {
+        const u=((by-cy)*(x+.5-cx)+(cx-bx)*(y+.5-cy))/den;
+        const v=((cy-ay)*(x+.5-cx)+(ax-cx)*(y+.5-cy))/den,w=1-u-v;
+        if(u<0 || v<0 || w<0)continue;
+        const depth=u*inv[0]+v*inv[1]+w*inv[2],index=y*width+x;
+        if(depth<=buffer[index])continue;
+        buffer[index]=depth;
+        const p=index*4;pixels[p]=face.color[0];pixels[p+1]=face.color[1];pixels[p+2]=face.color[2];
+      }
+    }
+    return pixels;
+  }
+  root.rasterize = rasterize;
   root.parseOBJ = parseOBJ;
   root.projectTriangles = projectTriangles;
-  if (typeof module !== 'undefined') module.exports = {parseOBJ,projectTriangles};
+  if (typeof module !== 'undefined') module.exports = {parseOBJ,projectTriangles,rasterize};
 })(typeof window !== 'undefined' ? window : globalThis);
