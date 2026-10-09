@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap");
 /* EcoSort: quiet industrial interface inspired by the supplied references. */
 :root{color-scheme:dark;--bg:#0c1512;--white:#131e19;--ink:#eef3ee;--muted:#9fac9f;--line:#2b3931;--green:#65d6af;--soft:#1b2c23;--radius:6px;font-family:"Segoe UI",Arial,sans-serif}
 body{background:var(--bg);font-size:14px}
@@ -210,3 +211,8 @@ footer{color:#708174}footer>span:first-child{color:#3b5844}
 .skip-link{background:#286846;color:#fff}
 iframe[title*="3D"]{background:#ffffff}
 #robot-canvas{background:#fafbf8}
+
+/* Montserrat typography: site-wide font only; preserve layout and color tokens. */
+:root, body, button, input, select, textarea, option, table, .leaflet-container {
+  font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
+}
