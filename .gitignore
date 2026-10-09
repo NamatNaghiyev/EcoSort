@@ -6,3 +6,9 @@ venv/
 __pycache__/
 node_modules/
 .next/
+.qa_dataset/
+.qa_manifest.json
+.pytest_cache/
+core
+
+public/

@@ -4,6 +4,8 @@ os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
 os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
 import json
 import threading
+import hashlib
+from ecosort_domain import decision_for
 import warnings
 from pathlib import Path
 import numpy as np
@@ -22,6 +24,7 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024
 with CLASS_NAMES_PATH.open(encoding="utf-8") as f:
     CLASS_NAMES = json.load(f)
 NUM_CLASSES = len(CLASS_NAMES)
+MODEL_VERSION = hashlib.sha256(WEIGHTS_PATH.read_bytes()).hexdigest()[:12] if WEIGHTS_PATH.is_file() else "missing"
 
 WASTE_INFO = {
     "plastic": {
@@ -113,7 +116,7 @@ def allowed_file(filename):
     return bool(filename) and "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def predict_image(image_source, top_k=3):
+def prepare_image(image_source):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -128,6 +131,11 @@ def predict_image(image_source, top_k=3):
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
         raise ValueError("Şəkil oxuna bilmədi. Düzgün şəkil faylı seçin.") from exc
     batch = np.expand_dims(np.asarray(img, dtype=np.float32), axis=0)
+    return batch
+
+
+def predict_image(image_source, top_k=3):
+    batch = prepare_image(image_source)
     # Direct inference avoids an extra tf.data threadpool for each web request.
     preds = np.asarray(get_model()(batch, training=False))[0]
     if preds.shape != (NUM_CLASSES,) or not np.all(np.isfinite(preds)):
@@ -150,6 +158,17 @@ def health():
                     "model_available": present, "categories": CLASS_NAMES}), 200 if present else 503
 
 
+@app.get("/api/quality")
+def quality():
+    report_path = BASE_DIR / "reports/evaluation.json"
+    if not report_path.is_file():
+        return jsonify({"status": "not_evaluated", "message": "Test hesabatı hələ yaradılmayıb."}), 503
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report["current_model_version"] = MODEL_VERSION
+    report["matches_current_model"] = report.get("model_sha256", "")[:12] == MODEL_VERSION
+    return jsonify(report)
+
+
 @app.errorhandler(RequestEntityTooLarge)
 def too_large(error):
     return jsonify({"error": "Fayl ölçüsü limiti aşıldı. 3.5 MB-dan kiçik şəkil seçin."}), 413
@@ -167,7 +186,8 @@ def api_predict():
         info = WASTE_INFO.get(label, {})
         return jsonify({"label": label, "confidence": round(confidence * 100, 2),
                         "top_results": top_results, "low_confidence": confidence < 0.5,
-                        "description": info.get("description"), "tips": info.get("tips", [])})
+                        "description": info.get("description"), "tips": info.get("tips", []),
+                        "model_version": MODEL_VERSION, "decision": decision_for(label, round(confidence * 100, 2), top_results)})
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception:
