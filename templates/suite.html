@@ -1,5 +1,5 @@
 <section id="reflex-view" class="view" hidden>
- <div class="page-heading"><div><p class="eyebrow">QƏRARDAN HƏRƏKƏTƏ</p><h1>ReflexGrip iş prosesi</h1><p>AI nəticəsi, konveyer və tutma mexanizminin interaktiv simulyasiyası.</p></div><span class="quiet-tag">Sensor bağlantısı yoxdur · simulyasiya</span></div>
+ <div class="page-heading"><div><h1>ReflexGrip simulyasiyası</h1><p>AI nəticəsi, konveyer və tutma mexanizminin interaktiv simulyasiyası.</p></div><span class="quiet-tag">Sensor bağlantısı yoxdur · simulyasiya</span></div>
  <section class="panel" aria-labelledby="assembly-heading" style="margin-bottom:24px">
   <div class="panel-heading"><h2 id="assembly-heading">EcoSort × ReflexGrip — 3D model</h2><span class="status-tag">Konsept quruluş</span></div>
   <iframe src="{{ url_for('static', filename='media/assembly.html') }}" title="EcoSort konveyeri və ReflexGrip-in fırladıla bilən 3D modeli" loading="lazy" allowfullscreen style="display:block;width:100%;height:535px;border:0;border-radius:0 0 6px 6px"></iframe>
@@ -19,7 +19,7 @@
  <p class="notice">75% etibar və 15 faiz bəndi fərq demo qərar hədləridir. Kalibrasiya və fiziki sınaq olmadan real avadanlığın idarəetməsinə tətbiq olunmur. Qüvvələr ölçülmüş sensor göstəriciləri deyil.</p>
 </section>
 <section id="video-view" class="view" hidden>
- <div class="page-heading"><div><p class="eyebrow">ARDICIL KADRLAR VƏ OBYEKTLƏR</p><h1>Video və bölgə analizi</h1><p>Videodan seçilmiş kadrlar və şəkildə əl ilə işarələnmiş obyektlər təsnif edilir.</p></div><span class="quiet-tag">Avtomatik obyekt detektoru yoxdur</span></div>
+ <div class="page-heading"><div><h1>Video analizi</h1><p>Videodan seçilmiş kadrlar və şəkildə əl ilə işarələnmiş obyektlər təsnif edilir.</p></div><span class="quiet-tag">Avtomatik obyekt detektoru yoxdur</span></div>
  <section class="panel concept-panel" aria-labelledby="concept-heading">
   <div class="panel-heading"><h2 id="concept-heading">ReflexGrip — konsept videosu</h2><span class="status-tag">AI ilə yaradılmış nümayiş</span></div>
   <div class="panel-body"><video class="concept-video" controls playsinline preload="metadata" aria-label="ReflexGrip-in nəzərdə tutulan iş prinsipini göstərən konsept videosu"><source src="{{ url_for('static', filename='media/reflexgrip-concept.mp4') }}" type="video/mp4">Brauzeriniz videonu dəstəkləmir. <a href="{{ url_for('static', filename='media/reflexgrip-concept.mp4') }}">Videonu açın</a>.</video>
@@ -35,11 +35,11 @@
  <div class="toolbar panel-body"><button class="button" id="media-cancel" disabled>Analizi dayandır</button><button class="button" id="video-export" disabled>Nəticələri JSON yüklə</button><span id="video-status" role="status" aria-live="polite">Video seçin və ya kameranı açın.</span></div><div id="media-error" class="error" role="alert" hidden></div><div id="media-results" class="media-results"></div></div>
 </section>
 <section id="quality-view" class="view" hidden>
- <div class="page-heading"><div><p class="eyebrow">ÖLÇÜLƏ BİLƏN NƏTİCƏLƏR</p><h1>Modelin test hesabatı</h1><p>Saxlanmış modelin mövcud test dəsti üzərində real qiymətləndirilməsi.</p></div><button class="button" id="quality-refresh">Hesabatı yenilə</button></div>
+ <div class="page-heading"><div><h1>Modelin test hesabatı</h1><p>Saxlanmış modelin mövcud test dəsti üzərində real qiymətləndirilməsi.</p></div><button class="button" id="quality-refresh">Hesabatı yenilə</button></div>
  <p id="quality-status" class="notice" role="status">Hesabat yüklənir…</p><div id="quality-content"></div>
 </section>
 <section id="impact-view" class="view" hidden>
- <div class="page-heading"><div><p class="eyebrow">EKOLOJİ SSENARİ</p><h1>Karbon təsiri kalkulyatoru</h1><p>Çəki və təkrar emala yönələn pay əsasında şəffaf, təxmini CO₂e hesablaması.</p></div><span class="quiet-tag">Ölçülmüş emissiya deyil</span></div>
+ <div class="page-heading"><div><h1>Karbon təsiri kalkulyatoru</h1><p>Çəki və təkrar emala yönələn pay əsasında şəffaf, təxmini CO₂e hesablaması.</p></div><span class="quiet-tag">Ölçülmüş emissiya deyil</span></div>
  <div class="workspace"><div class="panel"><div class="panel-heading"><h2>Hesablama parametrləri</h2></div><form id="impact-form" class="panel-body">
  <label class="field">Material və metod<select id="impact-material"><option value="pet">PET plastik</option><option value="hdpe">HDPE plastik</option><option value="glass">Şüşə qablaşdırma</option><option value="aluminum">Alüminium qablar</option><option value="steel">Polad qablar</option><option value="cardboard">Dalğalı karton</option><option value="paper">Qarışıq kağız</option><option value="organic">Üzvi — yerli ssenari daxil edin</option><option value="custom">Öz yerli ssenarim</option></select></label>
  <div class="form-grid"><label class="field">Daxil olan çəki, kg<input id="impact-mass" type="number" min="0" max="1000000" step="0.01" value="10" required></label><label class="field">Emala qəbul olunan pay, %<input id="impact-accepted" type="number" min="0" max="100" step="1" value="90" required></label></div>
