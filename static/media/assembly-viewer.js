@@ -32,7 +32,7 @@
     if(gl) {
     const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
     ['position','normal','color'].forEach((name,i)=>{const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,36,i*12);});
-    gl.enable(gl.DEPTH_TEST);gl.clearColor(.047,.082,.067,1);
+    gl.enable(gl.DEPTH_TEST);gl.clearColor(.96,.97,.95,1);
     pLoc=gl.getUniformLocation(program,'projection');vLoc=gl.getUniformLocation(program,'view');
     }
     let yaw=-.85,pitch=.65,distance=3.4;
