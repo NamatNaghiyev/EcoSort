@@ -12,3 +12,10 @@ node_modules/
 core
 
 public/
+
+# Locally generated training data and candidate artifacts
+dataset_clean/
+camera_holdout/
+models/candidates/
+reports/clean_split_plan.json
+reports/camera_candidate.json
