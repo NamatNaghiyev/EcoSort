@@ -14,7 +14,16 @@
 <script src="{{ url_for('static', filename='camera-guard-core.js') }}" defer></script>
 <script src="{{ url_for('static', filename='camera-guard.js') }}" defer></script>
 <script src="{{ url_for('static', filename='mvp.js') }}" defer></script>
+<script src="{{ url_for('static', filename='i18n.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+<style>
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.language-picker{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px;background:var(--white)}
+.language-picker button{padding:5px 9px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-weight:650;font-size:11px;letter-spacing:.3px;line-height:1.4;cursor:pointer}
+.language-picker button.selected{background:var(--soft);color:var(--green)}
+.language-picker button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+@media(max-width:540px){.topbar-actions{gap:6px}.language-picker button{padding:5px 7px}}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Məzmuna keç</a>
@@ -35,7 +44,7 @@
 
 </aside>
 <div class="app-shell">
-<header class="topbar"><div><strong id="breadcrumb">Robot &amp; kamera</strong></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></header>
+<header class="topbar"><div><strong id="breadcrumb">Robot &amp; kamera</strong></div><div class="topbar-actions"><div class="language-picker" role="group" aria-label="Dil / Language"><button type="button" id="lang-az" class="selected" aria-pressed="true" title="Azərbaycan dili">AZ</button><button type="button" id="lang-en" aria-pressed="false" title="English">EN</button></div><button class="button compact" id="new-analysis"><span aria-hidden="true">＋</span> Yeni analiz</button></div></header>
 <main id="main" tabindex="-1">
 <section id="analysis-view" class="view" hidden>
 <div class="page-heading"><div><h1>Şəkil analizi</h1><p>Obyekti ayrıca yoxlayın, təsdiqlənməyən kateqoriyaları operatora yönləndirin.</p></div></div>
