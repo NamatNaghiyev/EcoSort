@@ -88,6 +88,45 @@ Eyni holdout setində aktiv modelin nəticəsi ilə müqayisə edin. Yalnız
 qiymətləndirmədə aydın üstünlük olarsa istehsal modelini **ayrıca**
 yeniləyin. Bu repoda yeni model çəkiləri hələ öyrədilməyib.
 
+## Kamera və şəkillər: məlum qeyri-tullantı obyektlərinin yoxlanması
+
+Telefon, kompüter, insan, kitab və digər bəzi obyektləri ekranda yanlışlıqla
+**kağız/karton** kimi təsdiqləməmək üçün `static/camera-guard.js` ayrıca
+**COCO-SSD (TensorFlow.js)** obyekt detektoru yükləyir. Bu YOLO deyil;
+brauzerdə işləyən öncədən təlim edilmiş ümumi obyekt detektorudur.
+
+- **Robot & kamera:** İstəyə görə `Obyekti seç` düyməsi və görüntü üstündə
+  düzbucaqlı seçim. Detektor `cell phone`, `person`, `laptop`, `tv`,
+  `keyboard` və başqa tanıdığı qeyri-tullantı obyektlərini təsbit edərsə
+  operator yoxlaması göstərilir, material təsnifatı göndərilmir.
+- **Bir obyekt aşkarlanarsa:** Detektorun `bottle`, `cup`, `wine glass`
+  və seçilmiş üzvi məhsul növləri üçün verdiyi `bbox` əsasında kadr
+  kəsilir; 3 kadr ərzində material müqayisə olunur. Material növü ilə
+  obyekt etiketi ziddiyyət təşkil edirsə yalnız yoxlama göstərilir.
+- **Məlum obyekt tapılmırsa:** Təsnifatı avtomatik qəbul etmək qadağandır.
+  Kamera bölməsində model təklifi göstərilə bilər, lakin nəticə
+  `unknown`/operator yoxlaması olaraq saxlanılır.
+- **Yeni analiz (fayl yükləmə):** Eyni obyekt yoxlamasından keçir.
+  Detektor məlum qeyri-tullantını gördükdə API-yə təsnifat üçün göndərilmir.
+  Məlum tullantı obyektinin yalnız ROI sahəsi modelə verilir.
+  Naməlum və ya ziddiyyətli nəticə `unknown` olaraq göstərilir.
+- **Fail-closed:** Detektor üçün skript və model yüklənməsə, kameranın və
+  fayl yükləmənin avtomatik təsnifatı bloklanır, istifadəçiyə
+  izah göstərilir. Xarici CDN bağlantısı və ilkin model yüklənməsi tələb
+  olunur; görüntülər brauzerdə analiz edilsə də JS kitabxanası və
+  çəkilər üçün şəbəkə sorğuları edilir.
+- **Vacib məhdudiyyət:** COCO-SSD bütün mümkün qeyri-tullantı obyektlərini
+  tanımır, uğurlu deteksiya materialı təsdiqləmir, telefonlar bəzən
+  detektor tərəfindən buraxıla bilər. Bu, kalibrasiya edilmiş ümumi OOD
+  modeli deyil. Həqiqi OOD aşkarlaması, YOLO tullantı deteksiyası və
+  robot koordinatları üçün əlavə etiketli dataset və ayrı sınaqlar lazımdır.
+
+Detektor siyasətinin lokal Node testləri:
+
+```bash
+node --test tests/camera-guard.test.cjs
+```
+
 ## Audit və qiymətləndirmə
 
 Bu komandalar şəkilləri silmir və kateqoriyaları dəyişmir:
