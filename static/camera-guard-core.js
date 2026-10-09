@@ -54,21 +54,34 @@
       const regionRatio=overlap/(region.w*region.h);
       if(boxRatio<0.15&&regionRatio<0.025)continue;
       if(forbidden.has(category)&&score>=0.50){
-        blocked.push({category,score,area:overlap});
+        blocked.push({category,score,area:overlap,box});
       }else if(wasteCandidates.has(category)&&score>=0.55&&regionRatio>=0.02){
         candidates.push({category,score,area:overlap,
           box:{x:box.x/width,y:box.y/height,w:box.w/width,h:box.h/height}});
       }
     }
     blocked.sort((a,b)=>b.score-a.score);
-    candidates.sort((a,b)=>b.area-a.area);
+    // Central, distinct recyclables are preferred; object class is not a material label.
+    const focus = item => {
+      const cx=(item.box.x+item.box.w/2)/width,cy=(item.box.y+item.box.h/2)/height;
+      const distance=Math.hypot(cx-.5,cy-.5);
+      const size=Math.sqrt(Math.min(1,item.box.w*item.box.h/(width*height)));
+      return item.score*.55+Math.max(0,1-distance/.71)*.3+size*.15;
+    };
+    candidates.sort((a,b)=>focus(b)-focus(a));
+    const primary=candidates[0]||null;
+    // Do not let irrelevant objects in the background hide a valid detected target.
+    const relevantBlockers=blocked.filter(item=>!primary||
+      (intersection(item.box,primary.box)/Math.max(1,primary.box.w*primary.box.h)>.65
+       &&item.score>primary.score+.08));
     return {
-      blocked:blocked.length>0,
-      blocking_objects:blocked.map(x=>({label:x.category,score:Math.round(x.score*100)})),
-      message:blocked.length?('Kamerada tullantı olmayan obyekt aşkarlandı: '+
-        (localName[blocked[0].category]||blocked[0].category)+
+      blocked:relevantBlockers.length>0,
+      blocking_objects:relevantBlockers.map(x=>({label:x.category,score:Math.round(x.score*100)})),
+      message:relevantBlockers.length?('Kamerada tullantı olmayan obyekt aşkarlandı: '+
+        (localName[relevantBlockers[0].category]||relevantBlockers[0].category)+
         '. Avtomatik çeşidləmə dayandırılıb.') : null,
-      suggested_box:candidates.length===1?candidates[0].box:null,
+      suggested_box:primary?primary.box:null,
+      primary_target:primary?{label:primary.category,confidence:Math.round(primary.score*100)}:null,
       detected_waste_candidates:candidates.map(x=>x.category),
       checked:true,
       ood_certified:false
